@@ -10,11 +10,18 @@ set(MX_Defines_Syms
 
 # STM32CubeMX generated include paths
 set(MX_Include_Dirs
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../RT-Thread
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Core/Inc
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Drivers/STM32F4xx_HAL_Driver/Inc
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Drivers/CMSIS/Device/ST/STM32F4xx/Include
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Drivers/CMSIS/Include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Middlewares/Third_Party/RealThread_RTOS_RT-Thread/include/
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Middlewares/Third_Party/RealThread_RTOS_RT-Thread/components/drivers/include/
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Middlewares/Third_Party/RealThread_RTOS_RT-Thread/components/drivers/include/drivers/
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Middlewares/Third_Party/RealThread_RTOS_RT-Thread/components/drivers/include/ipc/
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Middlewares/Third_Party/RealThread_RTOS_RT-Thread/components/finsh/
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Middlewares/Third_Party/RealThread_RTOS_RT-Thread/bsp
 )
 
 # STM32CubeMX generated application sources
@@ -22,6 +29,7 @@ set(MX_Application_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Core/Src/main.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Core/Src/stm32f4xx_it.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Core/Src/stm32f4xx_hal_msp.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Core/Src/stm32f4xx_hal_timebase_tim.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Core/Src/sysmem.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Core/Src/syscalls.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../../startup_stm32f427xx.s
@@ -30,6 +38,8 @@ set(MX_Application_Src
 # STM32 HAL/LL Drivers
 set(STM32_Drivers_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Core/Src/system_stm32f4xx.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim_ex.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rcc.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rcc_ex.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_flash.c
@@ -48,6 +58,31 @@ set(STM32_Drivers_Src
 # Drivers Midllewares
 
 
+set(RT-Thread_Src
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Middlewares/Third_Party/RealThread_RTOS_RT-Thread/libcpu/arm/cortex-m4/context_gcc.S
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Middlewares/Third_Party/RealThread_RTOS_RT-Thread/bsp/board.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Middlewares/Third_Party/RealThread_RTOS_RT-Thread/src/clock.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Middlewares/Third_Party/RealThread_RTOS_RT-Thread/src/components.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Middlewares/Third_Party/RealThread_RTOS_RT-Thread/src/device.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Middlewares/Third_Party/RealThread_RTOS_RT-Thread/src/idle.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Middlewares/Third_Party/RealThread_RTOS_RT-Thread/src/ipc.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Middlewares/Third_Party/RealThread_RTOS_RT-Thread/src/irq.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Middlewares/Third_Party/RealThread_RTOS_RT-Thread/src/kservice.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Middlewares/Third_Party/RealThread_RTOS_RT-Thread/src/mem.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Middlewares/Third_Party/RealThread_RTOS_RT-Thread/src/object.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Middlewares/Third_Party/RealThread_RTOS_RT-Thread/src/scheduler.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Middlewares/Third_Party/RealThread_RTOS_RT-Thread/src/thread.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Middlewares/Third_Party/RealThread_RTOS_RT-Thread/src/timer.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Middlewares/Third_Party/RealThread_RTOS_RT-Thread/libcpu/arm/cortex-m4/cpuport.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Middlewares/Third_Party/RealThread_RTOS_RT-Thread/components/finsh/shell.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Middlewares/Third_Party/RealThread_RTOS_RT-Thread/components/finsh/symbol.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Middlewares/Third_Party/RealThread_RTOS_RT-Thread/components/finsh/cmd.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Middlewares/Third_Party/RealThread_RTOS_RT-Thread/components/finsh/msh.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Middlewares/Third_Party/RealThread_RTOS_RT-Thread/components/finsh/msh_cmd.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Middlewares/Third_Party/RealThread_RTOS_RT-Thread/components/finsh/msh_file.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Middlewares/Third_Party/RealThread_RTOS_RT-Thread/components/drivers/serial/serial.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Middlewares/Third_Party/RealThread_RTOS_RT-Thread/components/drivers/src/completion.c
+)
 
 # Link directories setup
 set(MX_LINK_DIRS
@@ -57,7 +92,7 @@ set(MX_LINK_DIRS
 set(MX_LINK_LIBS 
     STM32_Drivers
     ${TOOLCHAIN_LINK_LIBRARIES}
-    
+    RT-Thread	
 )
 # Interface library for includes and symbols
 add_library(stm32cubemx INTERFACE)
@@ -69,6 +104,11 @@ add_library(STM32_Drivers OBJECT)
 target_sources(STM32_Drivers PRIVATE ${STM32_Drivers_Src})
 target_link_libraries(STM32_Drivers PUBLIC stm32cubemx)
 
+
+# Create RT-Thread static library
+add_library(RT-Thread OBJECT)
+target_sources(RT-Thread PRIVATE ${RT-Thread_Src})
+target_link_libraries(RT-Thread PUBLIC stm32cubemx)
 
 # Add STM32CubeMX generated application sources to the project
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE ${MX_Application_Src})
