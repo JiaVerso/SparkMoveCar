@@ -7,23 +7,28 @@ set(CMAKE_CXX_COMPILER_ID Clang)
 # Some default llvm settings
 set(TOOLCHAIN_PREFIX                starm-)
 
-# 这里的路径必须是你刚才确认过的真实绝对路径
-set(ST_COMPILER_FOR_LINUX           /opt/st/stm32cubeclt_1.21.0/st-arm-clang/bin)
+## Linux系统 --- 取消这部分注释即可
+# Ubuntu22.04 
+# set(ST_COMPILER_FOR_LINUX           /opt/st/stm32cubeclt_1.21.0/st-arm-clang/bin)
+## Ubuntu22.04 
+##set(CMAKE_C_COMPILER                ${ST_COMPILER_FOR_LINUX}/starm-clang)
+##set(CMAKE_ASM_COMPILER              ${CMAKE_C_COMPILER})
+##set(CMAKE_CXX_COMPILER              ${ST_COMPILER_FOR_LINUX}/starm-clang++)
+# # 如果下面还有这些工具，也建议一并改为绝对路径
+# set(CMAKE_LINKER                    ${ST_COMPILER_FOR_LINUX}/starm-clang)
+# set(CMAKE_OBJCOPY                   ${ST_COMPILER_FOR_LINUX}/starm-objcopy)
+# set(CMAKE_SIZE                      ${ST_COMPILER_FOR_LINUX}/starm-size)
 
-set(CMAKE_C_COMPILER                ${ST_COMPILER_FOR_LINUX}/starm-clang)
-set(CMAKE_ASM_COMPILER              ${CMAKE_C_COMPILER})
-set(CMAKE_CXX_COMPILER              ${ST_COMPILER_FOR_LINUX}/starm-clang++)
-
+# Win10 - C:\ST\STM32CubeCLT\STMicroelectronics_LLVM_ARM\bin -
+set(ST_COMPILER_FOR_WIN "C:/ST/STM32CubeCLT_1.21.0/st-arm-clang/bin")
+set(CMAKE_C_COMPILER   "${ST_COMPILER_FOR_WIN}/starm-clang.exe" CACHE PATH "" FORCE)
+set(CMAKE_CXX_COMPILER "${ST_COMPILER_FOR_WIN}/starm-clang++.exe" CACHE PATH "" FORCE)
+set(CMAKE_ASM_COMPILER "${CMAKE_C_COMPILER}" CACHE PATH "" FORCE)
 # 如果下面还有这些工具，也建议一并改为绝对路径
-set(CMAKE_LINKER                    ${ST_COMPILER_FOR_LINUX}/starm-clang)
-set(CMAKE_OBJCOPY                   ${ST_COMPILER_FOR_LINUX}/starm-objcopy)
-set(CMAKE_SIZE                      ${ST_COMPILER_FOR_LINUX}/starm-size)
-# set(CMAKE_C_COMPILER                ${TOOLCHAIN_PREFIX}clang)
-# set(CMAKE_ASM_COMPILER              ${CMAKE_C_COMPILER})
-# set(CMAKE_CXX_COMPILER              ${TOOLCHAIN_PREFIX}clang++)
-# set(CMAKE_LINKER                    ${TOOLCHAIN_PREFIX}clang)
-# set(CMAKE_OBJCOPY                   ${TOOLCHAIN_PREFIX}objcopy)
-# set(CMAKE_SIZE                      ${TOOLCHAIN_PREFIX}size)
+set(CMAKE_LINKER       "${ST_COMPILER_FOR_WIN}/starm-clang.exe")
+set(CMAKE_OBJCOPY      "${ST_COMPILER_FOR_WIN}/starm-objcopy.exe" CACHE PATH "" FORCE)
+set(CMAKE_SIZE         "${ST_COMPILER_FOR_WIN}/starm-size.exe" CACHE PATH "" FORCE)
+
 
 set(CMAKE_EXECUTABLE_SUFFIX_ASM     ".elf")
 set(CMAKE_EXECUTABLE_SUFFIX_C       ".elf")
