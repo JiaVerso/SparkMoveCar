@@ -10,8 +10,6 @@
  */
 #include <rthw.h>
 #include <rtthread.h>
-#include "main.h"
-extern void SystemClock_Config(void);
 
 #define _SCB_BASE       (0xE000E010UL)
 #define _SYSTICK_CTRL   (*(rt_uint32_t *)(_SCB_BASE + 0x0))
@@ -63,9 +61,6 @@ RT_WEAK void *rt_heap_end_get(void)
  */
 void rt_hw_board_init()
 {	
-    HAL_Init();
-  
-    SystemClock_Config();
 	/* System Clock Update */
 	SystemCoreClockUpdate();
 	

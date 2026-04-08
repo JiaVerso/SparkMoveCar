@@ -22,7 +22,6 @@
 // <c1>Using RT-Thread components initialization
 //  <i>Using RT-Thread components initialization
 #define RT_USING_COMPONENTS_INIT
-#define RT_USING_FPU
 // </c>
 // <c1>Using user main
 //  <i>Using user main
