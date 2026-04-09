@@ -31,7 +31,12 @@
 #define FIFO_NDEBUG
 #define USE_DYNAMIC_MEMORY //!< Use system malloc/free function
 
-#include "sys.h"
+
+#include <cmsis_gcc.h>
+#define MUTEX_DECLARE(mutex) unsigned long mutex
+#define MUTEX_INIT(mutex)    do{mutex = 0;}while(0)
+#define MUTEX_LOCK(mutex)    do{__disable_irq();}while(0)
+#define MUTEX_UNLOCK(mutex)  do{__enable_irq();}while(0)
 
     //******************************************************************************************
     //!                     Macro Function
@@ -55,7 +60,7 @@
     } fifo_s_t;
 
     //! FIFO Memory Model (Normal Receiver Mode)
-    //! 存任何类型的数据块
+    //! 存任何类型的数据块(√)
     typedef struct
     {
         char *p_start_addr; //!< FIFO Memory Pool Start Address

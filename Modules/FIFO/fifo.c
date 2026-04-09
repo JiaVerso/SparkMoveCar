@@ -203,7 +203,7 @@ int fifo_s_puts(fifo_s_t *p_fifo, char *p_source, int len)
 {
     int retval;
     int len_to_end;         //! 缓冲区剩余容量
-    int len_from_start;     //! 
+    int len_from_start;     //! 需要传输的剩余容量
 
     ASSERT(p_fifo);
 
@@ -242,6 +242,8 @@ int fifo_s_puts(fifo_s_t *p_fifo, char *p_source, int len)
     else //rollback
     {
         len_from_start = len - len_to_end;
+
+        //! void *memcpy(void *dest, const void *src, size_t n);
         memcpy(p_fifo->p_write_addr, p_source, len_to_end);
         memcpy(p_fifo->p_start_addr, p_source + len_to_end, len_from_start);
         p_fifo->p_write_addr = p_fifo->p_start_addr + len_from_start;

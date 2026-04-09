@@ -19,6 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "dma.h"
+#include "stm32f4xx_hal_def.h"
 #include "usart.h"
 #include "gpio.h"
 
@@ -26,6 +27,7 @@
 /* USER CODE BEGIN Includes */
 #include <rtthread.h>
 #include <stdint.h>
+#include "fifo.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -37,7 +39,6 @@
 /* USER CODE BEGIN PD */
 #define RX_BUF_SIZE 512
 uint8_t USART7_Rx_buf[RX_BUF_SIZE];
-HAL_UARTEx_ReceiveToIdle_DMA(&huart7, USART7_Rx_buf, RX_BUF_SIZE);
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -48,6 +49,36 @@ HAL_UARTEx_ReceiveToIdle_DMA(&huart7, USART7_Rx_buf, RX_BUF_SIZE);
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+fifo_s_t *uart_rx_fifo = NULL;
+fifo_s_t *uart_tx_fifo = NULL;
+const uint16_t TX_FIFO_SIZE = 100;
+static uint16_t buf[TX_FIFO_SIZE];				//发送缓冲区
+uint16_t len = fifo_s_used(&uart_tx_fifo);
+/**
+  * @brief  Reception Event Callback (Rx event notification called after use of advanced reception service).
+  * @param  huart UART handle
+  * @param  Size  Number of data available in application reception buffer (indicates a position in
+  *               reception buffer until which, data are available)
+  * @retval None
+  */
+void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
+{
+  /* Prevent unused argument(s) compilation warning */
+
+    static uint16_t Rx_buf_pos = 0;	//本次回调接收的数据在缓冲区的起点
+    static uint16_t Rx_length;	//本次回调接收数据的长度
+    
+    Rx_length = Size - Rx_buf_pos;
+    fifo_s_puts(uart_rx_fifo, (char *)&USART7_Rx_buf[Rx_buf_pos], Rx_length);
+    Rx_buf_pos += Rx_length;
+    if (Rx_buf_pos >= RX_BUF_SIZE) Rx_buf_pos = 0;	
+
+
+
+  /* NOTE : This function should not be modified, when the callback is needed,
+            the HAL_UARTEx_RxEventCallback can be implemented in the user file.
+   */
+}
 
 /* USER CODE END PV */
 
@@ -61,12 +92,13 @@ void SystemClock_Config(void);
 /* USER CODE BEGIN 0 */
 void my_task_entry(void *parameter)
 {
+
     while (1)
     {     
-        HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_RESET);
-        rt_thread_mdelay(500);
-        HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_SET);
-        rt_thread_mdelay(500);
+        fifo_s_puts(&uart_rx_fifo, &USART1_Rx_buf[Rx_buf_pos], Rx_length);	//数据填入 FIFO
+        uint8_t len = fifo_s_used(&uart_tx_fifo);		//待发送数据长度
+        fifo_s_gets(&uart_tx_fifo, (char *)buf, len);	
+        HAL_UART_Transmit_DMA(&huart1, buf, len);	
 
     }
 }
@@ -171,29 +203,7 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-/**
-  * @brief  Reception Event Callback (Rx event notification called after use of advanced reception service).
-  * @param  huart UART handle
-  * @param  Size  Number of data available in application reception buffer (indicates a position in
-  *               reception buffer until which, data are available)
-  * @retval None
-  */
-void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
-{
-  /* Prevent unused argument(s) compilation warning */
-  static uint16_t* write_pos = Size;
-  static uint16_t* read_pos;
-  static uint16_t rx_length;
 
-  rx_length = (*write_pos) - (*read_pos);
-
-
-
-
-  /* NOTE : This function should not be modified, when the callback is needed,
-            the HAL_UARTEx_RxEventCallback can be implemented in the user file.
-   */
-}
 /* USER CODE END 4 */
 
 /**
