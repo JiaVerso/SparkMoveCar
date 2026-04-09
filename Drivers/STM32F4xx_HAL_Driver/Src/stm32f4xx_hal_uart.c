@@ -3136,10 +3136,10 @@ static void UART_DMARxHalfCplt(DMA_HandleTypeDef *hdma)
   UART_HandleTypeDef *huart = (UART_HandleTypeDef *)((DMA_HandleTypeDef *)hdma)->Parent;
 
   /* Initialize type of RxEvent that correspond to RxEvent callback execution;
-     In this case, Rx Event type is Half Transfer */
+     In this case, Rx Event type is 半满传输 */
   huart->RxEventType = HAL_UART_RXEVENT_HT;
 
-  /* Check current reception Mode :
+  /* 适配新老不同API函数 Check current reception Mode :
      If Reception till IDLE event has been selected : use Rx Event callback */
   if (huart->ReceptionType == HAL_UART_RECEPTION_TOIDLE)
   {

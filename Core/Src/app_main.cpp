@@ -21,3 +21,4 @@ void app_main(void)
         rt_thread_mdelay(500);
     }
 }
+
