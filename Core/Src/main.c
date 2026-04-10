@@ -19,7 +19,6 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "dma.h"
-#include "stm32f4xx_hal_def.h"
 #include "usart.h"
 #include "gpio.h"
 
@@ -50,10 +49,8 @@ uint8_t USART7_Rx_buf[RX_BUF_SIZE];
 
 /* USER CODE BEGIN PV */
 fifo_s_t *uart_rx_fifo = NULL;
-fifo_s_t *uart_tx_fifo = NULL;
-const uint16_t TX_FIFO_SIZE = 100;
-static uint16_t buf[TX_FIFO_SIZE];				//发送缓冲区
-uint16_t len = fifo_s_used(&uart_tx_fifo);
+
+uint8_t tx_temp_buf[] = 123;
 /**
   * @brief  Reception Event Callback (Rx event notification called after use of advanced reception service).
   * @param  huart UART handle
@@ -80,6 +77,18 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
    */
 }
 
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+  /* Prevent unused argument(s) compilation warning */
+  UNUSED(huart);
+  /* NOTE: This function should not be modified, when the callback is needed,
+           the HAL_UART_RxCpltCallback could be implemented in the user file
+   */
+  if(huart7.Instance == UART7)
+  {
+    HAL_GPIO_TogglePin(LED_GREEN_GPIO_Port,LED_GREEN_Pin);
+  }
+}
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -91,15 +100,25 @@ void SystemClock_Config(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 void my_task_entry(void *parameter)
-{
+{   
+  
+    // uart_rx_fifo = fifo_s_create(1024);
+
+    // HAL_UARTEx_ReceiveToIdle_DMA(&huart7, USART7_Rx_buf, RX_BUF_SIZE);
 
     while (1)
-    {     
-        fifo_s_puts(&uart_rx_fifo, &USART1_Rx_buf[Rx_buf_pos], Rx_length);	//数据填入 FIFO
-        uint8_t len = fifo_s_used(&uart_tx_fifo);		//待发送数据长度
-        fifo_s_gets(&uart_tx_fifo, (char *)buf, len);	
-        HAL_UART_Transmit_DMA(&huart1, buf, len);	
-
+    {     	
+      // if (huart7.gState == HAL_UART_STATE_READY) 
+      //   {
+      //       HAL_UART_Transmit_DMA(&huart7, tx_temp_buf, 5);
+      //   }
+      HAL_GPIO_WritePin(LED_RED_GPIO_Port, LED_RED_Pin, GPIO_PIN_RESET);
+      HAL_Delay(500);
+      HAL_GPIO_WritePin(LED_RED_GPIO_Port, LED_RED_Pin, GPIO_PIN_SET);
+      HAL_Delay(500);
+      //   // 必须加延时，否则 RT-Thread 的其他低优先级任务（如 idle）会被饿死
+      //   rt_thread_mdelay(5);
+      HAL_UART_Transmit(&huart7, tx_temp_buf, 5, 10);
     }
 }
 /* USER CODE END 0 */
@@ -137,12 +156,15 @@ int main(void)
   MX_UART7_Init();
   MX_UART8_Init();
   /* USER CODE BEGIN 2 */
+  HAL_UART_Receive_DMA(&huart7,USART7_Rx_buf,RX_BUF_SIZE);
+  // uart_rx_fifo = fifo_s_create(1024);
 
-  rt_thread_t tid = rt_thread_create("my_task", my_task_entry, RT_NULL, 1024, 15, 10);
-  if (tid != RT_NULL)
-    {
-        rt_thread_startup(tid);
-    }
+  // HAL_UARTEx_ReceiveToIdle_DMA(&huart7, USART7_Rx_buf, RX_BUF_SIZE);
+  // rt_thread_t tid = rt_thread_create("my_task", my_task_entry, RT_NULL, 1024, 15, 10);
+  // if (tid != RT_NULL)
+  //   {
+  //       rt_thread_startup(tid);
+  //   }
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -152,7 +174,13 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    rt_thread_mdelay(1000);
+    HAL_GPIO_WritePin(LED_RED_GPIO_Port, LED_RED_Pin, GPIO_PIN_RESET);
+    HAL_Delay(500);
+   
+    HAL_UART_Transmit_DMA(&huart7,tx_temp_buf,sizeof(tx_temp_buf));
+
+    HAL_GPIO_WritePin(LED_RED_GPIO_Port, LED_RED_Pin, GPIO_PIN_SET);
+    HAL_Delay(500);
   }
   /* USER CODE END 3 */
 }

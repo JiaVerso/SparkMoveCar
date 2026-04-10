@@ -1763,12 +1763,9 @@ HAL_StatusTypeDef HAL_UARTEx_ReceiveToIdle_IT(UART_HandleTypeDef *huart, uint8_t
 }
 
 /**
-  * @brief  （在 DMA 模式下接收一定量的数据，直到接收到了预期数量的数据，或者触发了串口空闲（IDLE）事件为止）
-  *         Receive an amount of data in DMA mode till either the expected number of data is received or an IDLE event occurs.
-  * @note   Reception is initiated by this function call. 
-  *         （后续的接收工作由 DMA 服务接管，它会自动将接收到的数据元素搬运到用户的接收缓冲区中）
-  *         Further progress of reception is achieved thanks to DMA services,
-  *         transferring automatically received data elements in user reception buffer and
+  * @brief Receive an amount of data in DMA mode till either the expected number of data is received or an IDLE event occurs.
+  * @note   Reception is initiated by this function call. Further progress of reception is achieved thanks
+  *         to DMA services, transferring automatically received data elements in user reception buffer and
   *         calling registered callbacks at half/end of reception. UART IDLE events are also used to consider
   *         reception phase as ended. In all cases, callback execution will indicate number of received data elements.
   * @note   When the UART parity is enabled (PCE = 1), the received data contain
@@ -3136,10 +3133,10 @@ static void UART_DMARxHalfCplt(DMA_HandleTypeDef *hdma)
   UART_HandleTypeDef *huart = (UART_HandleTypeDef *)((DMA_HandleTypeDef *)hdma)->Parent;
 
   /* Initialize type of RxEvent that correspond to RxEvent callback execution;
-     In this case, Rx Event type is 半满传输 */
+     In this case, Rx Event type is Half Transfer */
   huart->RxEventType = HAL_UART_RXEVENT_HT;
 
-  /* 适配新老不同API函数 Check current reception Mode :
+  /* Check current reception Mode :
      If Reception till IDLE event has been selected : use Rx Event callback */
   if (huart->ReceptionType == HAL_UART_RECEPTION_TOIDLE)
   {
@@ -3308,10 +3305,10 @@ HAL_StatusTypeDef UART_Start_Receive_DMA(UART_HandleTypeDef *huart, uint8_t *pDa
   huart->ErrorCode = HAL_UART_ERROR_NONE;
   huart->RxState = HAL_UART_STATE_BUSY_RX;
 
-  /* DMA全满回调 Set the UART DMA transfer complete callback */
+  /* Set the UART DMA transfer complete callback */
   huart->hdmarx->XferCpltCallback = UART_DMAReceiveCplt;
 
-  /* DMA半满回调 Set the UART DMA Half transfer complete callback */
+  /* Set the UART DMA Half transfer complete callback */
   huart->hdmarx->XferHalfCpltCallback = UART_DMARxHalfCplt;
 
   /* Set the DMA error callback */
