@@ -13,3 +13,5 @@ clang编译器默认不会把main函数当成单独一个线程，main在此时�
 * DMA半满全满+环形缓冲区(FIFO)+idle
 !!! malloc 内存池 内存管理块 ---（预编译指令（ASSERT断言） #ifdef USE_DYNAMIC_MEMORY等等）--- 指针函数fifo_s_t* app_create() 和函数指针fifo_s_t *app_create()
 !!! 互斥锁 MUTEX_DECLARE(mutex)
+
+issue: 串口接受乱码： 时钟配置错误，假如实际晶振8，cubemx晶振25，速度就会慢3倍，115200通信率就会降低3倍，所以接收乱码

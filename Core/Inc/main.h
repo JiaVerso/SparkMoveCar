@@ -53,7 +53,7 @@ extern "C" {
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
-
+void UART8_Trigger_Tx_DMA(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
