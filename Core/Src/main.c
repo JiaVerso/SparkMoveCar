@@ -37,10 +37,10 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define RX_BUF_SIZE 512
+#define RX_BUF_SIZE 1024
 uint8_t USART8_Rx_buf[RX_BUF_SIZE];   // DMA Buff
 
-#define TX_DMA_BUF_SIZE 512
+#define TX_DMA_BUF_SIZE 2048
 static uint8_t tx_dma_buf[TX_DMA_BUF_SIZE];
 /* USER CODE END PD */
 
@@ -53,12 +53,11 @@ static uint8_t tx_dma_buf[TX_DMA_BUF_SIZE];
 
 /* USER CODE BEGIN PV */
 fifo_s_t *uart_rx_fifo = NULL;
-fifo_s_t *uart_tx_fifo = NULL;
 // static char tx_temp_buf[] = "cai yun zhi nan\r\n";
 /**
   * @brief  Reception Event Callback (Rx event notification called after use of advanced reception service).
   * @param  huart UART handle
-  * @param  Size  Number of data available in application reception buffer (indicates a position in
+  * @param  Size  （类似于写指针的静态位置）Number of data available in application reception buffer (indicates a position in
   *               reception buffer until which, data are available)
   * @retval None
   */
@@ -67,17 +66,38 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
   /* Prevent unused argument(s) compilation warning */
 
     static uint16_t Rx_buf_pos = 0;	//本次回调接收的数据在缓冲区的起点
-    static uint16_t Rx_length;	//本次回调接收数据的长度
+    uint16_t Rx_length;	//本次回调接收数据的长度
     
-    Rx_length = Size - Rx_buf_pos;
-    fifo_s_puts(uart_rx_fifo, (char *)&USART8_Rx_buf[Rx_buf_pos], Rx_length);
-    Rx_buf_pos += Rx_length;
-    if (Rx_buf_pos >= RX_BUF_SIZE) Rx_buf_pos = 0;	
-    UART8_Trigger_Tx_DMA();
-
-
-
-
+        // 1. 判断 DMA 指针是否发生了“绕回” (Wrap-around)
+        if (Size >= Rx_buf_pos) 
+        {
+            // 情况 A：没有绕回，正常顺序接收
+            Rx_length = Size - Rx_buf_pos;
+            if (Rx_length > 0)
+            {
+                fifo_s_puts(uart_rx_fifo, (char *)&USART8_Rx_buf[Rx_buf_pos], Rx_length);
+            }
+        } 
+        else 
+        {
+            // 情况 B：发生了绕回！必须分两段提取数据
+            // 第一段：从上次读取的位置，一直读到缓冲区的最末尾
+            uint16_t len1 = RX_BUF_SIZE - Rx_buf_pos;
+            fifo_s_puts(uart_rx_fifo, (char *)&USART8_Rx_buf[Rx_buf_pos], len1);
+            
+            // 第二段：从缓冲区头部 (0)，读到当前的 Size 位置
+            uint16_t len2 = Size;
+            if (len2 > 0)
+            {
+                fifo_s_puts(uart_rx_fifo, (char *)&USART8_Rx_buf[0], len2);
+            }
+            Rx_length = len1 + len2;
+             // 仅作记录调试用
+        }        
+        // 2. 更新指针，Size 就是下一次的起点
+        Rx_buf_pos = Size;
+        
+        UART8_Trigger_Tx_DMA();
   /* NOTE : This function should not be modified, when the callback is needed,
             the HAL_UARTEx_RxEventCallback can be implemented in the user file.
    */
@@ -174,7 +194,7 @@ int main(void)
   MX_DMA_Init();
   MX_UART8_Init();
   /* USER CODE BEGIN 2 */
-  uart_rx_fifo = fifo_s_create(1024);
+  uart_rx_fifo = fifo_s_create(2048);
   HAL_UARTEx_ReceiveToIdle_DMA(&huart8, USART8_Rx_buf, RX_BUF_SIZE);
   // rt_thread_t tid = rt_thread_create("my_task", my_task_entry, RT_NULL, 1024, 15, 10);
   // if (tid != RT_NULL)
@@ -190,11 +210,11 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_RESET);
-    HAL_Delay(500);
+    // HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_RESET);
+    // HAL_Delay(500);
    
-    HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_SET);
-    HAL_Delay(500);
+    // HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_SET);
+    // HAL_Delay(500);
   }
   /* USER CODE END 3 */
 }
@@ -211,16 +231,27 @@ void SystemClock_Config(void)
   /** Configure the main internal regulator output voltage
   */
   __HAL_RCC_PWR_CLK_ENABLE();
-  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE3);
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
 
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
-  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+  RCC_OscInitStruct.PLL.PLLM = 6;
+  RCC_OscInitStruct.PLL.PLLN = 180;
+  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
+  RCC_OscInitStruct.PLL.PLLQ = 4;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Activate the Over-Drive mode
+  */
+  if (HAL_PWREx_EnableOverDrive() != HAL_OK)
   {
     Error_Handler();
   }
@@ -229,12 +260,12 @@ void SystemClock_Config(void)
   */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5) != HAL_OK)
   {
     Error_Handler();
   }
