@@ -122,5 +122,109 @@ void HAL_CAN_MspDeInit(CAN_HandleTypeDef* canHandle)
 
 /* USER CODE BEGIN 1 */
 
+/**
+  * @brief  CAN INIT
+  * @param  huart can接口
+  * @retval None
+  */
+void CAN_Init(CAN_HandleTypeDef *hcan)
+{
+  HAL_CAN_Start(hcan);
+  HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO1_MSG_PENDING);
+  
+}
+
+/**
+  * @brief  配置CAN BUS上的一些基本选项（canid，mask，滤波器，标准帧等等）
+  * @param  hcan can接口
+  * @param  Object_Para  位域打包-避免了臃肿的额参数列表，只需要将每一位的bit传进Object_Para中
+                      （CAN_HandleTypeDef *hcan, 
+                            uint8_t FilterBank, 
+                            uint8_t FIFO_Num, 
+                            uint8_t is_ExtID, 
+                            uint8_t is_Remote, 
+                            uint32_t ID, 
+                            uint32_t Mask_ID）
+  * @param  ID 接收到的真实ID
+  * @param  Mask_ID 掩码-筛选匹配的CANID
+  * @retval None
+  */
+void CAN_Filter_Mask_Config(CAN_HandleTypeDef *hcan, uint8_t Object_Para, uint32_t ID, uint32_t Mask_ID)
+{
+  CAN_FilterTypeDef can_filter_init_structure;
+
+  // 看第0位ID, 判断是数据帧还是遥控帧
+  if (Object_Para & 0x01)
+  {
+    return;
+  }
+
+  // 看第1位ID, 判断是标准帧还是扩展帧
+  if ((Object_Para & 0x02) >> 1)
+  {
+    return;
+  }
+
+  // 只考虑标准帧
+  // ID配置, 标准帧的ID是11bit, 硬件寄存器规定必须顶格放在高 16 位的前 11 个比特里。
+  can_filter_init_structure.FilterIdHigh = (ID & 0x7FF) << 5;
+  // 掩码后ID的低16bit
+  can_filter_init_structure.FilterIdLow = 0x0000;
+  // 掩码后屏蔽位的高16bit
+  can_filter_init_structure.FilterMaskIdHigh = (Mask_ID & 0x7FF) << 5;
+  // 掩码后屏蔽位的低16bit
+  can_filter_init_structure.FilterMaskIdLow = 0x0000;
+
+  // 滤波器配置
+  // 滤波器序号, 0-27, 共28个滤波器, can1是0~13, can2是14~27
+  can_filter_init_structure.FilterBank = (Object_Para >> 3) & 0x1F;
+  // 滤波器模式, 设置ID掩码模式
+  can_filter_init_structure.FilterMode = CAN_FILTERMODE_IDMASK;
+  // 32位滤波
+  can_filter_init_structure.FilterScale = CAN_FILTERSCALE_32BIT;
+  // 使能滤波器
+  can_filter_init_structure.FilterActivation = ENABLE;
+  
+  // 从机模式配置
+  // 从机模式选择开始单元, 一般均分14个单元给CAN1和CAN2
+  can_filter_init_structure.SlaveStartFilterBank = 14;
+
+  // 滤波器绑定FIFOx, 只能绑定一个
+  can_filter_init_structure.FilterFIFOAssignment = (Object_Para >> 2) & 0x01;
+
+  HAL_CAN_ConfigFilter(hcan, &can_filter_init_structure);
+}
+
+/**
+  * @brief  配置CAN BUS上的一些基本选项（canid，mask，滤波器，标准帧等等）
+  * @param  hcan can接口
+  * @param  Object_Para  
+  * @retval None
+  */
+uint8_t CAN_Send_Data(CAN_HandleTypeDef *hcan, uint16_t ID, uint8_t *Data, uint16_t Length)
+{
+  CAN_TxHeaderTypeDef tx_header;
+  uint32_t used_mailbox;
+
+  tx_header.StdId = ID;
+  tx_header.ExtId = 0;
+  tx_header.IDE = 0;
+  tx_header.RTR = 0;
+  tx_header.DLC = Length;
+
+  return (HAL_CAN_AddTxMessage(hcan, &tx_header, Data, &used_mailbox));
+}
+
+void LED_Control(uint8_t data)
+{
+  HAL_GPIO_WritePin(GPIOG, GPIO_PIN_1, ((data & 1) == 0) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOG, GPIO_PIN_2, ((data & 2) == 0) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOG, GPIO_PIN_3, ((data & 4) == 0) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOG, GPIO_PIN_4, ((data & 8) == 0) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOG, GPIO_PIN_5, ((data & 16) == 0) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOG, GPIO_PIN_6, ((data & 32) == 0) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOG, GPIO_PIN_7, ((data & 64) == 0) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOG, GPIO_PIN_8, ((data & 128) == 0) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+}
 /* USER CODE END 1 */
 
