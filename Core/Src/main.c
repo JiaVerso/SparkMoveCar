@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "can.h"
 #include "dma.h"
 #include "usart.h"
 #include "gpio.h"
@@ -193,6 +194,7 @@ int main(void)
   MX_GPIO_Init();
   MX_DMA_Init();
   MX_UART8_Init();
+  MX_CAN1_Init();
   /* USER CODE BEGIN 2 */
   uart_rx_fifo = fifo_s_create(2048);
   HAL_UARTEx_ReceiveToIdle_DMA(&huart8, USART8_Rx_buf, RX_BUF_SIZE);
