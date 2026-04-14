@@ -154,7 +154,7 @@ void UART8_Trigger_Tx_DMA(void)
   */
 void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan)
 {
-  CAN_RxHeaderTypeDef header;
+  CAN_RxHeaderTypeDef header = {0};
   uint8_t data;
 
   HAL_CAN_GetRxMessage(hcan, CAN_FILTER_FIFO1, &header, &data);
@@ -235,12 +235,10 @@ int main(void)
 
   uint8_t Send_Data = 0;
 
-  // CAN_Init(&hcan1);
-
-  HAL_CAN_Start(&hcan1);
-  HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO1_MSG_PENDING);
+  CAN_Init(&hcan1);
 
   CAN_Filter_Mask_Config(&hcan1, CAN_FILTER(13) | CAN_FIFO_1 | CAN_STDID | CAN_DATA_TYPE, 0x114, 0x7ff);
+  
 
   // rt_thread_t tid = rt_thread_create("my_task", my_task_entry, RT_NULL, 1024, 15, 10);
   // if (tid != RT_NULL)
@@ -256,13 +254,13 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-
     Send_Data++;
     CAN_Send_Data(&hcan1, 0x114, &Send_Data, 1);
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    HAL_Delay(500);
+    HAL_Delay(250);
   }
   /* USER CODE END 3 */
 }
