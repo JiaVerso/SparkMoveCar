@@ -34,20 +34,18 @@ extern "C" {
 
 extern CAN_HandleTypeDef hcan1;
 
+extern CAN_HandleTypeDef hcan2;
+
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */
 
 void MX_CAN1_Init(void);
+void MX_CAN2_Init(void);
 
 /* USER CODE BEGIN Prototypes */
 
 void MX_CAN1_Init(void);
-void CAN_Init(CAN_HandleTypeDef *hcan);
-void CAN_Filter_Mask_Config(CAN_HandleTypeDef *hcan, uint8_t Object_Para, uint32_t ID, uint32_t Mask_ID);
-uint8_t CAN_Send_Data(CAN_HandleTypeDef *hcan, uint16_t ID, uint8_t *Data, uint16_t Length);
-
-void LED_Control(uint8_t data);
 
 /* USER CODE END Prototypes */
 

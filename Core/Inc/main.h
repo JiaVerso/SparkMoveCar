@@ -28,7 +28,8 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx_hal.h"
-
+#include <drv_can.h>
+#include <drv_bsp.h>
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
@@ -54,6 +55,7 @@ void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
 void UART8_Trigger_Tx_DMA(void);
+void Motor_Cmd_TxCallback(Struct_CAN_Rx_Buffer *Rx_Buffer);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/

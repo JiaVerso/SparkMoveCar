@@ -29,6 +29,8 @@
 #include <stdint.h>
 #include "fifo.h"
 #include <string.h>
+#include <drv_can.h>
+#include <drv_bsp.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -47,20 +49,6 @@ static uint8_t tx_dma_buf[TX_DMA_BUF_SIZE];
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-// 位域打包
-#define CAN_FILTER(x) ((x) << 3)
-
-// 接收队列
-#define CAN_FIFO_0 (0 << 2)
-#define CAN_FIFO_1 (1 << 2)
-
-//标准帧或扩展帧
-#define CAN_STDID (0 << 1)
-#define CAN_EXTID (1 << 1)
-
-// 数据帧或遥控帧
-#define CAN_DATA_TYPE (0 << 0)
-#define CAN_REMOTE_TYPE (1 << 0)
 
 /* USER CODE END PM */
 
@@ -152,14 +140,9 @@ void UART8_Trigger_Tx_DMA(void)
   * @param  HAL_CAN_GetRxMessage HAL库内部函数-从FIFO中获取数据帧
   * @retval None
   */
-void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan)
+void Motor_Cmd_TxCallback(Struct_CAN_Rx_Buffer *Rx_Buffer)
 {
-  CAN_RxHeaderTypeDef header = {0};
-  uint8_t data;
-
-  HAL_CAN_GetRxMessage(hcan, CAN_FILTER_FIFO1, &header, &data);
-  
-  LED_Control(data);
+  // 暂时未处理电调发送过来的反馈信息
 }
 
 /* USER CODE END PV */
@@ -214,7 +197,9 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-
+  
+  BSP_Init(BSP_DC_LU_ON | BSP_DC_LD_ON | BSP_DC_RU_ON | BSP_DC_RD_ON | BSP_LED_GREEN_ON, 0, 0);
+  CAN_Init(&hcan1, Motor_Cmd_TxCallback);
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -229,15 +214,14 @@ int main(void)
   MX_DMA_Init();
   MX_UART8_Init();
   MX_CAN1_Init();
+  MX_CAN2_Init();
   /* USER CODE BEGIN 2 */
   uart_rx_fifo = fifo_s_create(2048);
   HAL_UARTEx_ReceiveToIdle_DMA(&huart8, USART8_Rx_buf, RX_BUF_SIZE);
 
-  uint8_t Send_Data = 0;
-
-  CAN_Init(&hcan1);
-
-  CAN_Filter_Mask_Config(&hcan1, CAN_FILTER(13) | CAN_FIFO_1 | CAN_STDID | CAN_DATA_TYPE, 0x114, 0x7ff);
+  // uint8_t Send_Data = 0;
+ 
+  CAN_Filter_Mask_Config(&hcan1, CAN_FILTER(13) | CAN_FIFO_1 | CAN_STDID | CAN_DATA_TYPE, 0x200, 0x7ff);
   
 
   // rt_thread_t tid = rt_thread_create("my_task", my_task_entry, RT_NULL, 1024, 15, 10);
@@ -249,18 +233,32 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  int16_t current = 0;
   while (1)
   {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    Send_Data++;
-    CAN_Send_Data(&hcan1, 0x114, &Send_Data, 1);
+    while (current < 1000) {
+      current += 50;
+      CAN1_0x200_Tx_Data[0] = current >> 8;
+      CAN1_0x200_Tx_Data[1] = current;
+      CAN_Send_Data(&hcan1, 0x200, CAN1_0x200_Tx_Data, 8);
+      HAL_Delay(100);
+    }
+    while (current > -1000) {
+      current -= 50;
+      CAN1_0x200_Tx_Data[0] = current >> 8;
+      CAN1_0x200_Tx_Data[1] = current;
+      CAN_Send_Data(&hcan1, 0x200, CAN1_0x200_Tx_Data, 8);
+      HAL_Delay(100);
+    }
+    // Send_Data++;
+    // CAN_Send_Data(&hcan1, 0x114, &Send_Data, 1);
 
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    HAL_Delay(250);
   }
   /* USER CODE END 3 */
 }

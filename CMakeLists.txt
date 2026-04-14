@@ -54,6 +54,8 @@ target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     Core/Src/app_main.cpp
     Modules/FIFO/fifo.c
+    Bsp/drv_bsp.c
+    Bsp/drv_can.c
     # Add user sources here
 )
 
@@ -61,6 +63,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined include paths
     Modules/FIFO
+    Bsp
 )
 
 # Add project symbols (macros)
@@ -76,4 +79,11 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
     stm32cubemx
 
     # Add user defined libraries
+)
+
+# 强制指定特定的 .c 文件使用 C++ 编译器 (CXX) 进行编译
+set_source_files_properties(
+    Bsp/drv_bsp.c 
+    Bsp/drv_can.c 
+    PROPERTIES LANGUAGE CXX
 )
