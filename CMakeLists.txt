@@ -56,6 +56,8 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     Modules/FIFO/fifo.c
     Bsp/drv_bsp.c
     Bsp/drv_can.c
+    Bsp/drv_uart.c
+    App/app_test.c
     # Add user sources here
 )
 

@@ -18,7 +18,7 @@
 #include "usart.h"
 
 /* Exported macros -----------------------------------------------------------*/
-#define TX_BUF_SIZE
+#define TX_BUF_SIZE 512
 /* Exported types ------------------------------------------------------------*/
 
 /**

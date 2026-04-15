@@ -24,6 +24,7 @@ extern "C" {
 /* Exported types ------------------------------------------------------------*/
 
 void Test_Motor_Sweep(void);
+void App_Test_SerialPlot_Float(void);
 /* Exported variables --------------------------------------------------------*/
 
 /* Exported function declarations --------------------------------------------*/

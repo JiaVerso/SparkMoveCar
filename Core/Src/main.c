@@ -211,10 +211,6 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 
-  static uint32_t flag;
-  UART8_Tx_Data[0] = 0xAA;
-  float tmp_data;
-
   while (1) {
     /* USER CODE END WHILE */
 
@@ -223,28 +219,10 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    
-    if (flag == 2500) {
-      flag = 0;
-    }
-    
-    tmp_data = ((float)flag / 1000.0f) * ((float)flag / 1000.0f);
-    for (uint8_t i = 0; i < 4; i++) {
-      UART8_Tx_Data[i + 1] = *((char *)(&tmp_data) + i);
-    }
-
-    float led_status;
-    led_status = !HAL_GPIO_ReadPin(GPIOG, GPIO_PIN_1);
-    for (uint8_t i = 0; i < 4; i++) {
-      UART8_Tx_Data[i + 5] = *((char *)(&led_status) + i);
-    }
-
-    HAL_Delay(0);
-    flag++;
-    UART_Send_Data(&huart8, UART8_Tx_Data, 9);
-  }
+  }  
   /* USER CODE END 3 */
 }
+
 
 /**
   * @brief System Clock Configuration

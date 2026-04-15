@@ -12,6 +12,7 @@
  /* USER CODE END Header */
 #include "app_test.h"
 #include "drv_can.h"
+#include "drv_uart.h" 
 #include "stm32f4xx_hal.h"
 /* USER CODE END Includes */
 
@@ -46,4 +47,43 @@ void Test_Motor_Sweep(void)
     CAN1_0x200_Tx_Data[2] = 0;
     CAN1_0x200_Tx_Data[3] = 0;
     CAN_Send_Data(&hcan1, 0x200, CAN1_0x200_Tx_Data, 8);
+}
+
+/**
+ * @brief  串口多路浮点数发送测试 (用于 SerialPlot 波形查看)
+ * @note   建议在 main.c 的 while(1) 中每隔 10ms 调用一次此函数
+ * @note   tmp_data 4字节 缓存数组uint8_t ，需要将float的内存地址重解释。((char *)(&tmp_data) + i)
+ * @note   ((char *)(&tmp_data) + i) 告诉编译器这是一连串单字节的字符指针，接受端按float接收在强转为float（*(float *)rx_buffer）
+ */
+void App_Test_SerialPlot_Float(void)
+{
+    static uint16_t flag = 0;
+    
+    static uint8_t test_tx_buf[9]; 
+    test_tx_buf[0] = 0xAA;
+    
+    // 业务逻辑 1：生成一个 0 到 6.25 的抛物线波形
+    if (flag == 2500) {
+        flag = 0;
+    }
+    
+    float tmp_data = ((float)flag / 1000.0f) * ((float)flag / 1000.0f);
+    for (uint8_t i = 0; i < 4; i++) {
+        test_tx_buf[i + 1] = *((char *)(&tmp_data) + i); 
+    }
+
+    // 业务逻辑 2：读取按键/LED 状态波形
+    // 读出来的 0 或 1 存入 float，这在 SerialPlot 里会画出完美的方波！
+    float led_status = !HAL_GPIO_ReadPin(GPIOG, GPIO_PIN_1);
+    for (uint8_t i = 0; i < 4; i++) {
+        // 数据放在 [5] 到 [8]
+        test_tx_buf[i + 5] = *((char *)(&led_status) + i);
+    }
+
+    // 调用底层驱动发送这 9 个字节
+    UART_Send_Data(&huart8, test_tx_buf, 9);
+    
+    // 状态更新
+    flag++;
+    
 }
