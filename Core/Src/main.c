@@ -198,8 +198,6 @@ int main(void)
 
   /* USER CODE BEGIN Init */
   
-  BSP_Init(BSP_DC_LU_ON | BSP_DC_LD_ON | BSP_DC_RU_ON | BSP_DC_RD_ON | BSP_LED_GREEN_ON, 0, 0);
-  CAN_Init(&hcan1, Motor_Cmd_TxCallback);
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -216,6 +214,10 @@ int main(void)
   MX_CAN1_Init();
   MX_CAN2_Init();
   /* USER CODE BEGIN 2 */
+
+  BSP_Init(BSP_DC_LU_ON | BSP_DC_LD_ON | BSP_DC_RU_ON | BSP_DC_RD_ON | BSP_LED_GREEN_ON, 0, 0);
+  CAN_Init(&hcan1, Motor_Cmd_TxCallback);
+
   uart_rx_fifo = fifo_s_create(2048);
   HAL_UARTEx_ReceiveToIdle_DMA(&huart8, USART8_Rx_buf, RX_BUF_SIZE);
 
@@ -239,19 +241,20 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    while (current < 1000) {
-      current += 50;
-      CAN1_0x200_Tx_Data[0] = current >> 8;
-      CAN1_0x200_Tx_Data[1] = current;
+
+    while (current < 4000) {
+      current += 10;
+      CAN1_0x200_Tx_Data[2] = current >> 8;
+      CAN1_0x200_Tx_Data[3] = current;
       CAN_Send_Data(&hcan1, 0x200, CAN1_0x200_Tx_Data, 8);
-      HAL_Delay(100);
+      HAL_Delay(10);
     }
-    while (current > -1000) {
-      current -= 50;
-      CAN1_0x200_Tx_Data[0] = current >> 8;
-      CAN1_0x200_Tx_Data[1] = current;
+    while (current > -4000) {
+      current -= 10;
+      CAN1_0x200_Tx_Data[2] = current >> 8;
+      CAN1_0x200_Tx_Data[3] = current;
       CAN_Send_Data(&hcan1, 0x200, CAN1_0x200_Tx_Data, 8);
-      HAL_Delay(100);
+      HAL_Delay(10);
     }
     // Send_Data++;
     // CAN_Send_Data(&hcan1, 0x114, &Send_Data, 1);

@@ -135,7 +135,7 @@ void CAN_Filter_Mask_Config(CAN_HandleTypeDef *hcan, uint8_t Object_Para, uint32
   */
 uint8_t CAN_Send_Data(CAN_HandleTypeDef *hcan, uint16_t ID, uint8_t *Data, uint16_t Length)
 {
-    CAN_TxHeaderTypeDef tx_header;
+    CAN_TxHeaderTypeDef tx_header = {0};
     uint32_t used_mailbox;
 
     //检测传参是否正确

@@ -28,11 +28,11 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx_hal.h"
-#include <drv_can.h>
-#include <drv_bsp.h>
+
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <drv_bsp.h>
+#include <drv_can.h>
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
