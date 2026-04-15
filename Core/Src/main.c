@@ -29,8 +29,10 @@
 #include <stdint.h>
 #include "fifo.h"
 #include <string.h>
+
 #include <drv_can.h>
 #include <drv_bsp.h>
+#include <drv_uart.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -56,56 +58,12 @@ static uint8_t tx_dma_buf[TX_DMA_BUF_SIZE];
 
 /* USER CODE BEGIN PV */
 fifo_s_t *uart_rx_fifo = NULL;
-
+uint8_t rx_buffer[128];
 /**
-  * @brief  Reception Event Callback (Rx event notification called after use of advanced reception service).
-  * @param  huart UART handle
-  * @param  Size  （类似于写指针的静态位置）Number of data available in application reception buffer (indicates a position in
-  *               reception buffer until which, data are available)
-  * @retval None
-  */
-void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
-{
-  /* Prevent unused argument(s) compilation warning */
-
-    static uint16_t Rx_buf_pos = 0;	//本次回调接收的数据在缓冲区的起点
-    uint16_t Rx_length;	//本次回调接收数据的长度
-    
-        // 1. 判断 DMA 指针是否发生了“绕回” (Wrap-around)
-        if (Size >= Rx_buf_pos) 
-        {
-            // 情况 A：没有绕回，正常顺序接收
-            Rx_length = Size - Rx_buf_pos;
-            if (Rx_length > 0)
-            {
-                fifo_s_puts(uart_rx_fifo, (char *)&USART8_Rx_buf[Rx_buf_pos], Rx_length);
-            }
-        } 
-        else 
-        {
-            // 情况 B：发生了绕回！必须分两段提取数据
-            // 第一段：从上次读取的位置，一直读到缓冲区的最末尾
-            uint16_t len1 = RX_BUF_SIZE - Rx_buf_pos;
-            fifo_s_puts(uart_rx_fifo, (char *)&USART8_Rx_buf[Rx_buf_pos], len1);
-            
-            // 第二段：从缓冲区头部 (0)，读到当前的 Size 位置
-            uint16_t len2 = Size;
-            if (len2 > 0)
-            {
-                fifo_s_puts(uart_rx_fifo, (char *)&USART8_Rx_buf[0], len2);
-            }
-            Rx_length = len1 + len2;
-             // 仅作记录调试用
-        }        
-        // 2. 更新指针，Size 就是下一次的起点
-        Rx_buf_pos = Size;
-        
-        UART8_Trigger_Tx_DMA();
-  /* NOTE : This function should not be modified, when the callback is needed,
-            the HAL_UARTEx_RxEventCallback can be implemented in the user file.
-   */
-}
-
+ * @brief 串口 DMA 循环绕回处理核心算法 (类的方法)
+ * @param obj 串口管理对象指针
+ * @param Size DMA 当前写到的位置 (HAL库传入)
+ */
 void UART8_Trigger_Tx_DMA(void)
 {
     // 1. 检查当前串口的 TX 状态是否空闲 (非常重要！)
@@ -129,6 +87,22 @@ void UART8_Trigger_Tx_DMA(void)
             // 4. 开启 DMA 搬运！
             HAL_UART_Transmit_DMA(&huart8, tx_dma_buf, len);
         }
+    }
+}
+
+void Serialplot_Call_Back(uint8_t *Buffer, uint16_t Length)
+{
+    if (rx_buffer[0] == '0')
+    {
+        BSP_LED_1(BSP_LED_Status_DISABLED);
+    }
+    else if (rx_buffer[0] == '1')
+    {
+        BSP_LED_1(BSP_LED_Status_ENABLED);
+    }
+    else if (rx_buffer[0] == '2')
+    {
+        HAL_GPIO_TogglePin(GPIOG, GPIO_PIN_1);
     }
 }
 
@@ -217,6 +191,7 @@ int main(void)
 
   BSP_Init(BSP_DC_LU_ON | BSP_DC_LD_ON | BSP_DC_RU_ON | BSP_DC_RD_ON | BSP_LED_GREEN_ON, 0, 0);
   CAN_Init(&hcan1, Motor_Cmd_TxCallback);
+  Uart_Init(&huart8, rx_buffer, 10, Serialplot_Call_Back);
 
   uart_rx_fifo = fifo_s_create(2048);
   HAL_UARTEx_ReceiveToIdle_DMA(&huart8, USART8_Rx_buf, RX_BUF_SIZE);
@@ -235,33 +210,38 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  int16_t current = 0;
-  while (1)
-  {
+
+  static uint32_t flag;
+  UART8_Tx_Data[0] = 0xAA;
+  float tmp_data;
+
+  while (1) {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
 
-    while (current < 4000) {
-      current += 10;
-      CAN1_0x200_Tx_Data[2] = current >> 8;
-      CAN1_0x200_Tx_Data[3] = current;
-      CAN_Send_Data(&hcan1, 0x200, CAN1_0x200_Tx_Data, 8);
-      HAL_Delay(10);
-    }
-    while (current > -4000) {
-      current -= 10;
-      CAN1_0x200_Tx_Data[2] = current >> 8;
-      CAN1_0x200_Tx_Data[3] = current;
-      CAN_Send_Data(&hcan1, 0x200, CAN1_0x200_Tx_Data, 8);
-      HAL_Delay(10);
-    }
-    // Send_Data++;
-    // CAN_Send_Data(&hcan1, 0x114, &Send_Data, 1);
-
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+    
+    if (flag == 2500) {
+      flag = 0;
+    }
+    
+    tmp_data = ((float)flag / 1000.0f) * ((float)flag / 1000.0f);
+    for (uint8_t i = 0; i < 4; i++) {
+      UART8_Tx_Data[i + 1] = *((char *)(&tmp_data) + i);
+    }
+
+    float led_status;
+    led_status = !HAL_GPIO_ReadPin(GPIOG, GPIO_PIN_1);
+    for (uint8_t i = 0; i < 4; i++) {
+      UART8_Tx_Data[i + 5] = *((char *)(&led_status) + i);
+    }
+
+    HAL_Delay(0);
+    flag++;
+    UART_Send_Data(&huart8, UART8_Tx_Data, 9);
   }
   /* USER CODE END 3 */
 }

@@ -224,5 +224,4 @@ void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan)
     }
 }
 
-
 /************************ COPYRIGHT(C) USTC-ROBOWALKER **************************/
