@@ -59,6 +59,11 @@ static uint8_t tx_dma_buf[TX_DMA_BUF_SIZE];
 /* USER CODE BEGIN PV */
 fifo_s_t *uart_rx_fifo = NULL;
 uint8_t rx_buffer[128];
+int16_t Rx_Encoder, Rx_Omega, Rx_Torque, Rx_Temperature;
+float Tx_Encoder, Tx_Omega, Tx_Torque, Tx_Temperature;
+
+
+
 /**
  * @brief 串口 DMA 循环绕回处理核心算法 (类的方法)
  * @param obj 串口管理对象指针
@@ -116,7 +121,19 @@ void Serialplot_Call_Back(uint8_t *Buffer, uint16_t Length)
   */
 void Motor_Cmd_TxCallback(Struct_CAN_Rx_Buffer *Rx_Buffer)
 {
-  // 暂时未处理电调发送过来的反馈信息
+    // 暂时未处理电调发送过来的反馈信息
+   uint8_t *Rx_Data = Rx_Buffer->Data;
+    switch (Rx_Buffer->Header.StdId)
+    {
+    case (0x202):
+    {
+        Rx_Encoder = (Rx_Data[0] << 8) | Rx_Data[1];
+        Rx_Omega = (Rx_Data[2] << 8) | Rx_Data[3];
+        Rx_Torque = (Rx_Data[4] << 8) | Rx_Data[5];
+        Rx_Temperature = Rx_Data[6];
+    }
+    break;
+    }
 }
 
 /* USER CODE END PV */
@@ -191,14 +208,14 @@ int main(void)
 
   BSP_Init(BSP_DC_LU_ON | BSP_DC_LD_ON | BSP_DC_RU_ON | BSP_DC_RD_ON | BSP_LED_GREEN_ON, 0, 0);
   CAN_Init(&hcan1, Motor_Cmd_TxCallback);
-  Uart_Init(&huart8, rx_buffer, 10, Serialplot_Call_Back);
+  Uart_Init(&huart8, NULL, 0, NULL);
 
   uart_rx_fifo = fifo_s_create(2048);
   HAL_UARTEx_ReceiveToIdle_DMA(&huart8, USART8_Rx_buf, RX_BUF_SIZE);
 
   // uint8_t Send_Data = 0;
  
-  CAN_Filter_Mask_Config(&hcan1, CAN_FILTER(13) | CAN_FIFO_1 | CAN_STDID | CAN_DATA_TYPE, 0x200, 0x7ff);
+  CAN_Filter_Mask_Config(&hcan1, CAN_FILTER(13) | CAN_FIFO_1 | CAN_STDID | CAN_DATA_TYPE, 0x202, 0x7ff);
   
 
   // rt_thread_t tid = rt_thread_create("my_task", my_task_entry, RT_NULL, 1024, 15, 10);
@@ -219,7 +236,16 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-  }  
+    Tx_Encoder = Rx_Encoder;
+    Tx_Omega = Rx_Omega;  
+    Tx_Torque = Rx_Torque;
+    Tx_Temperature = Rx_Temperature;
+    serialplot.Set_Data(4, &Tx_Encoder, &Tx_Omega, &Tx_Torque, &Tx_Temperature);
+    serialplot.TIM_Add_PeriodElapsedCallback();
+    TIM_UART_PeriodElapsedCallback();
+
+    HAL_Delay(0);
+  }
   /* USER CODE END 3 */
 }
 
