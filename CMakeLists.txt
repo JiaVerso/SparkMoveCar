@@ -58,6 +58,8 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     Bsp/drv_can.c
     Bsp/drv_uart.c
     App/app_test.c
+    Device/motor_dji.c
+    Device/serial_plotter.c
     # Add user sources here
 )
 
@@ -66,6 +68,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined include paths
     Modules/FIFO
     Bsp
+    Device
 )
 
 # Add project symbols (macros)
