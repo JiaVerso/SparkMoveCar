@@ -20,7 +20,7 @@ typedef union {
 
 // 初始化
 void Plotter_Init(SerialPlotter_t *huart, uint8_t *tx_Buffer, uint8_t header, Plotter_Tx_Func tx_func) {
-    huart->frame_header = header;
+    huart->Frame_Header = header;
     huart->tx_func = tx_func;
     huart->UART_Tx_Data = tx_Buffer;
     huart->index = 0;
@@ -29,7 +29,7 @@ void Plotter_Init(SerialPlotter_t *huart, uint8_t *tx_Buffer, uint8_t header, Pl
 void Plotter_Begin(SerialPlotter_t *huart) {
     if (huart == NULL) return;
     // 写入帧头
-    huart->UART_Tx_Data[huart->index++] = huart->frame_header;
+    huart->UART_Tx_Data[huart->index++] = huart->Frame_Header;
 }
 
 void Plotter_AppendFloat(SerialPlotter_t *huart, float val) {
@@ -57,7 +57,12 @@ void Plotter_AppendUint8(SerialPlotter_t *huart, uint8_t val) {
     huart->UART_Tx_Data[huart->index++] = val;
 }
 
-void Plotter_Send(SerialPlotter_t *huart) {
+void Plotter_SendData(SerialPlotter_t *huart) {
+     // 安全校验
+    if (huart == NULL) {
+        return; 
+    }
     // 调用回调函数将 tx_buffer 发送出去
     huart->tx_func(huart->UART_Tx_Data, huart->index);
+    huart->index = 0;
 }

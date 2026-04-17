@@ -6,6 +6,7 @@
 #include <string.h>
 #include "drv_uart.h"
 #include <math.h>
+#include "stm32f4xx_hal.h"
 
 typedef void (*Plotter_Tx_Func)(uint8_t *data, uint16_t len);
 
@@ -28,9 +29,7 @@ void Plotter_Init(SerialPlotter_t *huart, uint8_t *tx_Buffer, uint8_t header, Pl
 // 放入帧头
 void Plotter_Begin(SerialPlotter_t *huart);
 // 放入帧尾
-void Plotter_Send(SerialPlotter_t *huart);
-
-
+void Plotter_SendData(SerialPlotter_t *huart);
 // 转换数据类型
 void Plotter_AppendFloat(SerialPlotter_t *huart, float val);
 void Plotter_AppendInt32(SerialPlotter_t *huart, int32_t val);

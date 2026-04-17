@@ -31,6 +31,27 @@
 #define USE_DYNAMIC_MEMORY //!< Use system malloc/free function
 
 
+//******************************************************************************************
+//!                     断言（宏）
+//******************************************************************************************
+#ifndef ASSERT  //防止重复定义
+
+#ifdef FIFO_NDEBUG
+#define ASSERT(x)
+#else
+#define ASSERT(x)                                           \
+    do                                                      \
+    {                                                       \
+        if (!(x))                                           \
+            printf("[assert]: %s, %d", __FILE__, __LINE__); \
+        while (!(x))                                        \
+            ;                                               \
+    } while (0)
+#endif
+
+#endif // ASSERT
+
+
 #include <cmsis_gcc.h>
 #define MUTEX_DECLARE(mutex) unsigned long mutex
 #define MUTEX_INIT(mutex)    do{mutex = 0;}while(0)

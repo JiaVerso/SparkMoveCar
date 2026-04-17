@@ -60,6 +60,8 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     App/app_test.c
     Device/motor_dji.c
     Device/serial_plotter.c
+    Device/motor_dji.c
+    Device/serial_plotter.c
     # Add user sources here
 )
 

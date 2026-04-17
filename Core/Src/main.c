@@ -33,6 +33,9 @@
 #include <drv_can.h>
 #include <drv_bsp.h>
 #include <drv_uart.h>
+#include <motor_dji.h>
+#include <serial_plotter.h>
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -59,10 +62,10 @@ static uint8_t tx_dma_buf[TX_DMA_BUF_SIZE];
 /* USER CODE BEGIN PV */
 fifo_s_t *uart_rx_fifo = NULL;
 uint8_t rx_buffer[128];
-int16_t Rx_Encoder, Rx_Omega, Rx_Torque, Rx_Temperature;
-float Tx_Encoder, Tx_Omega, Tx_Torque, Tx_Temperature;
 
-
+// 实例化对象
+SerialPlotter_t my_plotter;
+Motor_t motor_ID1;
 
 /**
  * @brief 串口 DMA 循环绕回处理核心算法 (类的方法)
@@ -125,15 +128,17 @@ void Motor_Cmd_TxCallback(Struct_CAN_Rx_Buffer *Rx_Buffer)
    uint8_t *Rx_Data = Rx_Buffer->Data;
     switch (Rx_Buffer->Header.StdId)
     {
-    case (0x202):
+    case (CAN_RX_ID_RF):
     {
-        Rx_Encoder = (Rx_Data[0] << 8) | Rx_Data[1];
-        Rx_Omega = (Rx_Data[2] << 8) | Rx_Data[3];
-        Rx_Torque = (Rx_Data[4] << 8) | Rx_Data[5];
-        Rx_Temperature = Rx_Data[6];
+        Motor_ParseRxData(&motor_ID1, Rx_Data);
     }
     break;
     }
+}
+
+void UART8_Send_To_Plotter_DMA(uint8_t *data, uint16_t len) {
+    // 调用 HAL 库的 DMA 发送函数
+    UART_Send_Data(&huart8, data, 1 + 12 * sizeof(float));
 }
 
 /* USER CODE END PV */
@@ -209,15 +214,18 @@ int main(void)
   BSP_Init(BSP_DC_LU_ON | BSP_DC_LD_ON | BSP_DC_RU_ON | BSP_DC_RD_ON | BSP_LED_GREEN_ON, 0, 0);
   CAN_Init(&hcan1, Motor_Cmd_TxCallback);
   Uart_Init(&huart8, NULL, 0, NULL);
+ 
 
   uart_rx_fifo = fifo_s_create(2048);
   HAL_UARTEx_ReceiveToIdle_DMA(&huart8, USART8_Rx_buf, RX_BUF_SIZE);
 
   // uint8_t Send_Data = 0;
- 
-  CAN_Filter_Mask_Config(&hcan1, CAN_FILTER(13) | CAN_FIFO_1 | CAN_STDID | CAN_DATA_TYPE, 0x202, 0x7ff);
   
-
+  Motor_Init(&motor_ID1, 0x202, 0x200);
+  MotorManager_Register(&motor_ID1);
+  Plotter_Init(&my_plotter, rx_buffer, 0xAA, UART8_Send_To_Plotter_DMA);
+  
+  CAN_Filter_Mask_Config(&hcan1, CAN_FILTER(13) | CAN_FIFO_1 | CAN_STDID | CAN_DATA_TYPE, 0x202, 0x7ff);
   // rt_thread_t tid = rt_thread_create("my_task", my_task_entry, RT_NULL, 1024, 15, 10);
   // if (tid != RT_NULL)
   //   {
@@ -236,19 +244,19 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    Tx_Encoder = Rx_Encoder;
-    Tx_Omega = Rx_Omega;  
-    Tx_Torque = Rx_Torque;
-    Tx_Temperature = Rx_Temperature;
-    serialplot.Set_Data(4, &Tx_Encoder, &Tx_Omega, &Tx_Torque, &Tx_Temperature);
-    serialplot.TIM_Add_PeriodElapsedCallback();
-    TIM_UART_PeriodElapsedCallback();
+    Plotter_Begin(&my_plotter);
 
-    HAL_Delay(0);
+    Plotter_Append(&my_plotter, motor_ID1.rx_angle);
+    Plotter_Append(&my_plotter, motor_ID1.rx_speed);
+    Plotter_Append(&my_plotter, motor_ID1.rx_torque);
+    Plotter_Append(&my_plotter, motor_ID1.rx_temperature);
+
+    Plotter_SendData(&my_plotter);
+
+    HAL_Delay(100);
   }
   /* USER CODE END 3 */
 }
-
 
 /**
   * @brief System Clock Configuration
