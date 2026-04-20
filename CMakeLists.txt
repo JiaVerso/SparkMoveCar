@@ -62,6 +62,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     Device/serial_plotter.c
     Device/motor_dji.c
     Device/serial_plotter.c
+    Modules/PID/pidcontroller.c
     # Add user sources here
 )
 
@@ -69,8 +70,10 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined include paths
     Modules/FIFO
+    Modules/PID
     Bsp
     Device
+    App
 )
 
 # Add project symbols (macros)

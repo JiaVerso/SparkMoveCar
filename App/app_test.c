@@ -13,8 +13,14 @@
 #include "app_test.h"
 #include "drv_can.h"
 #include "drv_uart.h" 
+#include "pidcontroller.h"
 #include "stm32f4xx_hal.h"
+#include <string.h>
+#include <stdlib.h>
+#include "main.h"
 /* USER CODE END Includes */
+
+extern PID_t pid_speed;
 
 /**
  * @brief  M3508 电机平滑正反转测试函数 (ID=2)
@@ -86,4 +92,34 @@ void App_Test_SerialPlot_Float(void)
     // 状态更新
     flag++;
     
+}
+
+/**
+ * @brief  解析serialplot发送过来的pid参数
+ * @note   这是一个阻塞型测试函数，仅供开机自检或裸机调试时使用！
+ * @param  "PID=P,I,D"  
+ */
+void App_Test_Parse_Command(uint8_t *Buffer, uint16_t Length)
+{
+    char *str = (char *)Buffer;
+
+    // int strncmp(const char *str1, const char *str2, size_t n) -- String n Compare
+    // float strtof(const char *nptr, char **endptr) -- String to Float
+    if (strncmp(str, "PID=", 4) == 0) 
+    {
+        char *pEnd;
+        float p_val = strtof(str + 4, &pEnd);
+        if (*pEnd == ',') 
+        {
+            float i_val = strtof(pEnd + 1, &pEnd);
+            if (*pEnd == ',') 
+            {
+                float d_val = strtof(pEnd + 1, NULL);
+                // 赋值
+                pid_speed.Kp = p_val;
+                pid_speed.Ki = i_val;
+                pid_speed.Kd = d_val;
+            }
+        }
+    }
 }

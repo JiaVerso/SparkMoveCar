@@ -30,11 +30,13 @@
 #include "fifo.h"
 #include <string.h>
 
-#include <drv_can.h>
-#include <drv_bsp.h>
-#include <drv_uart.h>
-#include <motor_dji.h>
-#include <serial_plotter.h>
+#include "drv_can.h"
+#include "drv_bsp.h"
+#include "drv_uart.h"
+#include "motor_dji.h"
+#include "serial_plotter.h"
+#include "pidcontroller.h"
+#include "app_test.h"
 
 /* USER CODE END Includes */
 
@@ -62,10 +64,14 @@ static uint8_t tx_dma_buf[TX_DMA_BUF_SIZE];
 /* USER CODE BEGIN PV */
 fifo_s_t *uart_rx_fifo = NULL;
 uint8_t rx_buffer[128];
+float Now_Omega, Target_Omega = 500.0f * PI;
+uint32_t Counter = 0;
+uint8_t speed_state = 0;
 
 // 实例化对象
 SerialPlotter_t my_plotter;
 Motor_t motor_ID1;
+PID_t  pid_speed;     // 速度环
 
 /**
  * @brief 串口 DMA 循环绕回处理核心算法 (类的方法)
@@ -100,17 +106,26 @@ void UART8_Trigger_Tx_DMA(void)
 
 void Serialplot_Call_Back(uint8_t *Buffer, uint16_t Length)
 {
-    if (rx_buffer[0] == '0')
+    char *str = (char *)Buffer;
+
+    // int strncmp(const char *str1, const char *str2, size_t n) -- String n Compare
+    // float strtof(const char *nptr, char **endptr) -- String to Float
+    if (strncmp(str, "PID=", 4) == 0) 
     {
-        BSP_LED_1(BSP_LED_Status_DISABLED);
-    }
-    else if (rx_buffer[0] == '1')
-    {
-        BSP_LED_1(BSP_LED_Status_ENABLED);
-    }
-    else if (rx_buffer[0] == '2')
-    {
-        HAL_GPIO_TogglePin(GPIOG, GPIO_PIN_1);
+        char *pEnd;
+        float p_val = strtof(str + 4, &pEnd);
+        if (*pEnd == ',') 
+        {
+            float i_val = strtof(pEnd + 1, &pEnd);
+            if (*pEnd == ',') 
+            {
+                float d_val = strtof(pEnd + 1, NULL);
+                // 赋值
+                pid_speed.Kp = p_val;
+                pid_speed.Ki = i_val;
+                pid_speed.Kd = d_val;
+            }
+        }
     }
 }
 
@@ -213,8 +228,8 @@ int main(void)
 
   BSP_Init(BSP_DC_LU_ON | BSP_DC_LD_ON | BSP_DC_RU_ON | BSP_DC_RD_ON | BSP_LED_GREEN_ON, 0, 0);
   CAN_Init(&hcan1, Motor_Cmd_TxCallback);
-  Uart_Init(&huart8, NULL, 0, NULL);
- 
+  Uart_Init(&huart8, rx_buffer, 128, Serialplot_Call_Back);
+  PID_Init(&pid_speed, 0.0f, 0.0f, 0.0f, 2500.0f, 2500.0f);
 
   uart_rx_fifo = fifo_s_create(2048);
   HAL_UARTEx_ReceiveToIdle_DMA(&huart8, USART8_Rx_buf, RX_BUF_SIZE);
@@ -225,7 +240,7 @@ int main(void)
   MotorManager_Register(&motor_ID1);
   Plotter_Init(&my_plotter, rx_buffer, 0xAA, UART8_Send_To_Plotter_DMA);
   
-  CAN_Filter_Mask_Config(&hcan1, CAN_FILTER(13) | CAN_FIFO_1 | CAN_STDID | CAN_DATA_TYPE, 0x202, 0x7ff);
+  CAN_Filter_Mask_Config(&hcan1, CAN_FILTER(13) | CAN_FIFO_1 | CAN_STDID | CAN_DATA_TYPE, 0, 0);
   // rt_thread_t tid = rt_thread_create("my_task", my_task_entry, RT_NULL, 1024, 15, 10);
   // if (tid != RT_NULL)
   //   {
@@ -244,16 +259,37 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+
+    Counter++;
+    if (Counter >= 80) {
+      Counter = 0;
+      speed_state = !speed_state;
+      if (speed_state == 1) {
+        Target_Omega = (250.0f * 2 * PI);
+      } else if (speed_state == 0) {
+        Target_Omega = (250.0f * PI);
+      }
+    }
+
     Plotter_Begin(&my_plotter);
 
-    Plotter_Append(&my_plotter, motor_ID1.rx_angle);
-    Plotter_Append(&my_plotter, motor_ID1.rx_speed);
-    Plotter_Append(&my_plotter, motor_ID1.rx_torque);
-    Plotter_Append(&my_plotter, motor_ID1.rx_temperature);
+    float current_speed_float = (float)motor_ID1.rx_speed;
+    // Plotter_Append(&my_plotter, motor_ID1.rx_angle);
+    Plotter_Append(&my_plotter, Target_Omega);
+    Plotter_Append(&my_plotter, current_speed_float);
+    Plotter_Append(&my_plotter, pid_speed.Kp);
+    // Plotter_Append(&my_plotter, motor_ID1.rx_torque);
+    // Plotter_Append(&my_plotter, motor_ID1.rx_temperature);
 
     Plotter_SendData(&my_plotter);
 
-    HAL_Delay(100);
+    int32_t Output = (int32_t)PID_Calculate(&pid_speed, motor_ID1.rx_speed, Target_Omega);
+
+    CAN1_0x200_Tx_Data[2] = Output >> 8;
+    CAN1_0x200_Tx_Data[3] = Output;
+    CAN_Send_Data(&hcan1, 0x200, CAN1_0x200_Tx_Data, 8);
+
+    HAL_Delay(25);
   }
   /* USER CODE END 3 */
 }

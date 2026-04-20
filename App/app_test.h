@@ -25,6 +25,8 @@ extern "C" {
 
 void Test_Motor_Sweep(void);
 void App_Test_SerialPlot_Float(void);
+
+void App_Test_Parse_Command(uint8_t *Buffer, uint16_t Length);
 /* Exported variables --------------------------------------------------------*/
 
 /* Exported function declarations --------------------------------------------*/
