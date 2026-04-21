@@ -114,12 +114,19 @@ void App_Test_Parse_Command(uint8_t *Buffer, uint16_t Length)
             float i_val = strtof(pEnd + 1, &pEnd);
             if (*pEnd == ',') 
             {
-                float d_val = strtof(pEnd + 1, NULL);
-                // 赋值
-                pid_speed.Kp = p_val;
-                pid_speed.Ki = i_val;
-                pid_speed.Kd = d_val;
+                float d_val = strtof(pEnd + 1, &pEnd);
+                if(*pEnd == ',')
+                {
+                    float f_val = strtof(pEnd + 1, NULL);
+                    // 赋值
+                    pid_speed.Kp = p_val;
+                    pid_speed.Ki = i_val;
+                    pid_speed.Kd = d_val;
+                    pid_speed.Kf = f_val;
+                }
+               
             }
+
         }
     }
 }

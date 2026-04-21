@@ -9,8 +9,8 @@
  *
  */
 
-#ifndef DRV_BSP_H
-#define DRV_BSP_H
+#ifndef __APP_TEST_H
+#define __APP_TEST_H
 
 /* Includes ------------------------------------------------------------------*/
 #ifdef __cplusplus

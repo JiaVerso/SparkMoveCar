@@ -29,6 +29,7 @@
 #include <stdint.h>
 #include "fifo.h"
 #include <string.h>
+#include <math.h>
 
 #include "drv_can.h"
 #include "drv_bsp.h"
@@ -64,9 +65,12 @@ static uint8_t tx_dma_buf[TX_DMA_BUF_SIZE];
 /* USER CODE BEGIN PV */
 fifo_s_t *uart_rx_fifo = NULL;
 uint8_t rx_buffer[128];
-float Now_Omega, Target_Omega = 500.0f * PI;
+float Now_Omega, Target_Omega = 350.0f * PI;
 uint32_t Counter = 0;
 uint8_t speed_state = 0;
+
+static float phase = 0.0f;          // 当前的相位角
+const float phase_step = 0.1f;
 
 // 实例化对象
 SerialPlotter_t my_plotter;
@@ -106,27 +110,7 @@ void UART8_Trigger_Tx_DMA(void)
 
 void Serialplot_Call_Back(uint8_t *Buffer, uint16_t Length)
 {
-    char *str = (char *)Buffer;
-
-    // int strncmp(const char *str1, const char *str2, size_t n) -- String n Compare
-    // float strtof(const char *nptr, char **endptr) -- String to Float
-    if (strncmp(str, "PID=", 4) == 0) 
-    {
-        char *pEnd;
-        float p_val = strtof(str + 4, &pEnd);
-        if (*pEnd == ',') 
-        {
-            float i_val = strtof(pEnd + 1, &pEnd);
-            if (*pEnd == ',') 
-            {
-                float d_val = strtof(pEnd + 1, NULL);
-                // 赋值
-                pid_speed.Kp = p_val;
-                pid_speed.Ki = i_val;
-                pid_speed.Kd = d_val;
-            }
-        }
-    }
+    App_Test_Parse_Command(Buffer, Length);
 }
 
  /* ---------------------------------------CAN Callback Configuration--------------------------------------------------------*/
@@ -229,7 +213,7 @@ int main(void)
   BSP_Init(BSP_DC_LU_ON | BSP_DC_LD_ON | BSP_DC_RU_ON | BSP_DC_RD_ON | BSP_LED_GREEN_ON, 0, 0);
   CAN_Init(&hcan1, Motor_Cmd_TxCallback);
   Uart_Init(&huart8, rx_buffer, 128, Serialplot_Call_Back);
-  PID_Init(&pid_speed, 0.0f, 0.0f, 0.0f, 2500.0f, 2500.0f);
+  PID_Init(&pid_speed, 0.0f, 0.0f, 0.0f, 0.0f,2500.0f, 2500.0f);
 
   uart_rx_fifo = fifo_s_create(2048);
   HAL_UARTEx_ReceiveToIdle_DMA(&huart8, USART8_Rx_buf, RX_BUF_SIZE);
@@ -260,16 +244,17 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-    Counter++;
-    if (Counter >= 80) {
-      Counter = 0;
-      speed_state = !speed_state;
-      if (speed_state == 1) {
-        Target_Omega = (250.0f * 2 * PI);
-      } else if (speed_state == 0) {
-        Target_Omega = (250.0f * PI);
-      }
+    phase += phase_step;
+
+    if (phase > (2.0f * PI)) 
+    {
+      phase -= (2.0f * PI);
     }
+
+    float amplitude = 175.0f * PI;
+    float offset = 525.0f * PI;
+
+    Target_Omega = offset + amplitude * sinf(phase);
 
     Plotter_Begin(&my_plotter);
 
@@ -289,7 +274,7 @@ int main(void)
     CAN1_0x200_Tx_Data[3] = Output;
     CAN_Send_Data(&hcan1, 0x200, CAN1_0x200_Tx_Data, 8);
 
-    HAL_Delay(25);
+    HAL_Delay(20);
   }
   /* USER CODE END 3 */
 }

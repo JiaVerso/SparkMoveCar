@@ -23,12 +23,14 @@ typedef struct {
     float Kp;
     float Ki;
     float Kd;
+    float Kf;
 
     float max_integral;
     float max_output;
     
     float error;
     float prev_error;
+    float prev_target;
     float integral;
 } PID_t;
 
@@ -38,10 +40,11 @@ typedef struct {
  * @param  kp           比例系数
  * @param  ki           积分系数
  * @param  kd           微分系数
+ * @param  kf           前馈系数
  * @param  max_integral 积分限幅最大值
  * @param  max_output   输出限幅最大值
  */
-void PID_Init(PID_t *pid, float kp, float ki, float kd, float max_integral, float max_output);
+void PID_Init(PID_t *pid, float kp, float ki, float kd, float kf, float max_integral, float max_output);
 
 /**
  * @brief  计算 PID 输出
