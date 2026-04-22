@@ -61,6 +61,8 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     Device/motor_dji.c
     Device/serial_plotter.c
     Modules/PID/pidcontroller.c
+    Device/drv_dm4310.c
+    Device/dev_dm4310.cpp
     # Add user sources here
 )
 

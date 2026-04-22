@@ -38,6 +38,7 @@
 #include "serial_plotter.h"
 #include "pidcontroller.h"
 #include "app_test.h"
+#include "drv_math.h"
 
 /* USER CODE END Includes */
 
