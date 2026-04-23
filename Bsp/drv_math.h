@@ -14,6 +14,9 @@ void Plotter_AppendInt32(SerialPlotter_t *huart, int32_t val);
 void Plotter_AppendInt16(SerialPlotter_t *huart, int16_t val);
 void Plotter_AppendUint8(SerialPlotter_t *huart, uint8_t val);
 
+int float_to_uint(float x_float, float x_min, float x_max, int bits);
+float uint_to_float(int x_int, float x_min, float x_max, int bits);
+
 // _Generic关键字实现泛型编程，其实也就是实现C++重载特性。
 #define Plotter_Append(obj_ptr, val) _Generic((val), \
     float:     Plotter_AppendFloat, \

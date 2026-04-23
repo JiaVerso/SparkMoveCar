@@ -130,3 +130,42 @@ void App_Test_Parse_Command(uint8_t *Buffer, uint16_t Length)
         }
     }
 }
+
+/**
+ * @brief  串口多路浮点数发送测试 (用于 SerialPlot 波形查看)
+ * @note   建议在 main.c 的 while(1) 中每隔 10ms 调用一次此函数
+ * @note   tmp_data 4字节 缓存数组uint8_t ，需要将float的内存地址重解释。((char *)(&tmp_data) + i)
+ * @note   ((char *)(&tmp_data) + i) 告诉编译器这是一连串单字节的字符指针，接受端按float接收在强转为float（*(float *)rx_buffer）
+ */
+ void App_Test_Motor_FeedBack(void)
+ {
+    // 设置相位角和步长
+    static float phase = 0.0f;
+    const float phase_step = 0.05f;
+    
+    // phase_step越小，正弦曲线越紧密
+    phase += phase_step;
+
+    if (phase > (2.0f * PI)) 
+    {
+      phase -= (2.0f * PI);
+    }
+    
+    float amplitude = 175.0f * PI;
+    float offset = 525.0f * PI;
+
+    Target_Omega = offset + amplitude * sinf(phase);
+
+    Plotter_Begin(&my_plotter);
+
+    float current_speed_float = (float)motor_ID1.rx_speed;
+    Plotter_Append(&my_plotter, Target_Omega);
+    Plotter_Append(&my_plotter, current_speed_float);
+    Plotter_Append(&my_plotter, pid_speed.Kp);
+    Plotter_SendData(&my_plotter);
+
+    int32_t Output = (int32_t)PID_Calculate(&pid_speed, motor_ID1.rx_speed, Target_Omega);
+    CAN1_0x200_Tx_Data[2] = Output >> 8;
+    CAN1_0x200_Tx_Data[3] = Output;
+    CAN_Send_Data(&hcan1, 0x200, CAN1_0x200_Tx_Data, 8);
+ }

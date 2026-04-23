@@ -1,6 +1,7 @@
 #ifndef __DRV_DM4310_H__
 #define __DRV_DM4310_H__
 #include "main.h"
+#include "drv_math.h"
 #include "drv_can.h"
 
 #define MIT_MODE 			0x000
@@ -55,11 +56,9 @@ typedef struct
 	uint8_t start_flag;
 	motor_fbpara_t para;
 	motor_ctrl_t ctrl;
-	motor_ctrl_t cmd;
+	motor_ctrl_t cmd;       // 指令和控制分开，可以在控制前对指令数值进行检查
 }dm_motor_t;
 
-float uint_to_float(int x_int, float x_min, float x_max, int bits);
-int float_to_uint(float x_float, float x_min, float x_max, int bits);
 void dm4310_ctrl_send(hcan_t* hcan, motor_t *motor);
 void dm4310_enable(hcan_t* hcan, motor_t *motor);
 void dm4310_disable(hcan_t* hcan, motor_t *motor);

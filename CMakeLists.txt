@@ -62,7 +62,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     Device/serial_plotter.c
     Modules/PID/pidcontroller.c
     Device/drv_dm4310.c
-    Device/dev_dm4310.cpp
+    Device/dev_dm4310.c
     # Add user sources here
 )
 

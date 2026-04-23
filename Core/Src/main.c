@@ -20,6 +20,7 @@
 #include "main.h"
 #include "can.h"
 #include "dma.h"
+#include "drv_dm4310.h"
 #include "usart.h"
 #include "gpio.h"
 
@@ -39,6 +40,8 @@
 #include "pidcontroller.h"
 #include "app_test.h"
 #include "drv_math.h"
+#include "dev_dm4310.h"
+#include "drv_dm4310.h"
 
 /* USER CODE END Includes */
 
@@ -70,13 +73,11 @@ float Now_Omega, Target_Omega = 350.0f * PI;
 uint32_t Counter = 0;
 uint8_t speed_state = 0;
 
-static float phase = 0.0f;          // 当前的相位角
-const float phase_step = 0.1f;
-
 // 实例化对象
 SerialPlotter_t my_plotter;
 Motor_t motor_ID1;
 PID_t  pid_speed;     // 速度环
+dm_motor_t motor[Motor1];
 
 /**
  * @brief 串口 DMA 循环绕回处理核心算法 (类的方法)
@@ -128,9 +129,9 @@ void Motor_Cmd_TxCallback(Struct_CAN_Rx_Buffer *Rx_Buffer)
    uint8_t *Rx_Data = Rx_Buffer->Data;
     switch (Rx_Buffer->Header.StdId)
     {
-    case (CAN_RX_ID_RF):
+    case (DM4310_MOTOR):
     {
-        Motor_ParseRxData(&motor_ID1, Rx_Data);
+        dm4310_fbdata(&motor[Motor1], Rx_Data);
     }
     break;
     }
@@ -216,11 +217,11 @@ int main(void)
   Uart_Init(&huart8, rx_buffer, 128, Serialplot_Call_Back);
   PID_Init(&pid_speed, 0.0f, 0.0f, 0.0f, 0.0f,2500.0f, 2500.0f);
 
+  dm4310_motor_init(&motor[Motor1], 0x01, POS_MODE)
+
   uart_rx_fifo = fifo_s_create(2048);
   HAL_UARTEx_ReceiveToIdle_DMA(&huart8, USART8_Rx_buf, RX_BUF_SIZE);
 
-  // uint8_t Send_Data = 0;
-  
   Motor_Init(&motor_ID1, 0x202, 0x200);
   MotorManager_Register(&motor_ID1);
   Plotter_Init(&my_plotter, rx_buffer, 0xAA, UART8_Send_To_Plotter_DMA);
@@ -245,37 +246,15 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-    phase += phase_step;
-
-    if (phase > (2.0f * PI)) 
-    {
-      phase -= (2.0f * PI);
-    }
-
-    float amplitude = 175.0f * PI;
-    float offset = 525.0f * PI;
-
-    Target_Omega = offset + amplitude * sinf(phase);
-
-    Plotter_Begin(&my_plotter);
-
-    float current_speed_float = (float)motor_ID1.rx_speed;
     // Plotter_Append(&my_plotter, motor_ID1.rx_angle);
-    Plotter_Append(&my_plotter, Target_Omega);
-    Plotter_Append(&my_plotter, current_speed_float);
-    Plotter_Append(&my_plotter, pid_speed.Kp);
+    // Plotter_Append(&my_plotter, Target_Omega);
+    // Plotter_Append(&my_plotter, current_speed_float);
+    // Plotter_Append(&my_plotter, pid_speed.Kp);
     // Plotter_Append(&my_plotter, motor_ID1.rx_torque);
     // Plotter_Append(&my_plotter, motor_ID1.rx_temperature);
 
-    Plotter_SendData(&my_plotter);
-
-    int32_t Output = (int32_t)PID_Calculate(&pid_speed, motor_ID1.rx_speed, Target_Omega);
-
-    CAN1_0x200_Tx_Data[2] = Output >> 8;
-    CAN1_0x200_Tx_Data[3] = Output;
-    CAN_Send_Data(&hcan1, 0x200, CAN1_0x200_Tx_Data, 8);
-
-    HAL_Delay(20);
+   
+    HAL_Delay(10);
   }
   /* USER CODE END 3 */
 }
