@@ -20,7 +20,7 @@
 #define CAN_RX_ID_LB     0x205  // 左后
 #define CAN_RX_ID_RB     0x206  // 右后
 
-#define DM4310_MOTOR     0x00  // 右后
+#define DM4310_LEFT_MOTOR     0x11  // 右后
 
 // 电机类定义
 typedef struct {

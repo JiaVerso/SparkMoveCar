@@ -18,6 +18,7 @@ extern "C" {
 #endif
 /* ---------------------------------------------------------------------------*/
 #include "drv_math.h"
+#include "fifo.h"
 #include "stm32f4xx_hal.h"
 /* Exported macros -----------------------------------------------------------*/
 
@@ -27,8 +28,8 @@ void Test_Motor_Sweep(void);
 void App_Test_SerialPlot_Float(void);
 
 void App_Test_Parse_Command(uint8_t *Buffer, uint16_t Length);
-
- void App_Test_Motor_FeedBack(void);
+void App_Test_Trigger_UART_DMA(UART_HandleTypeDef *huart, fifo_s_t *fifo, uint8_t *dma_buf, uint16_t max_buf_size);
+//  void App_Test_Motor_FeedBack(void);
 /* Exported variables --------------------------------------------------------*/
 
 /* Exported function declarations --------------------------------------------*/

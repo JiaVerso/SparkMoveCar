@@ -18,6 +18,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "main.h"
+#include "serial_plotter.h"
 /* USER CODE END Includes */
 
 extern PID_t pid_speed;
@@ -137,35 +138,67 @@ void App_Test_Parse_Command(uint8_t *Buffer, uint16_t Length)
  * @note   tmp_data 4字节 缓存数组uint8_t ，需要将float的内存地址重解释。((char *)(&tmp_data) + i)
  * @note   ((char *)(&tmp_data) + i) 告诉编译器这是一连串单字节的字符指针，接受端按float接收在强转为float（*(float *)rx_buffer）
  */
- void App_Test_Motor_FeedBack(void)
- {
-    // 设置相位角和步长
-    static float phase = 0.0f;
-    const float phase_step = 0.05f;
+//  void App_Test_Motor_FeedBack(void)
+//  {
+//     // 设置相位角和步长
+//     static float phase = 0.0f;
+//     const float phase_step = 0.05f;
     
-    // phase_step越小，正弦曲线越紧密
-    phase += phase_step;
+//     // phase_step越小，正弦曲线越紧密
+//     phase += phase_step;
 
-    if (phase > (2.0f * PI)) 
+//     if (phase > (2.0f * PI)) 
+//     {
+//       phase -= (2.0f * PI);
+//     }
+
+//     float amplitude = 175.0f * PI;
+//     float offset = 525.0f * PI;
+
+//     Target_Omega = offset + amplitude * sinf(phase);
+
+//     Plotter_Begin(&my_plotter);
+
+//     float current_speed_float = (float)motor_ID1.rx_speed;
+//     Plotter_Append(&my_plotter, Target_Omega);
+//     Plotter_Append(&my_plotter, current_speed_float);
+//     Plotter_Append(&my_plotter, pid_speed.Kp);
+//     Plotter_SendData(&my_plotter);
+
+//     int32_t Output = (int32_t)PID_Calculate(&pid_speed, motor_ID1.rx_speed, Target_Omega);
+//     CAN1_0x200_Tx_Data[2] = Output >> 8;
+//     CAN1_0x200_Tx_Data[3] = Output;
+//     CAN_Send_Data(&hcan1, 0x200, CAN1_0x200_Tx_Data, 8);
+//  }
+
+
+/**
+ * @brief  DMA 触发逻辑
+ * @note   建议在 main.c 的 while(1) 中每隔 10ms 调用一次此函数
+ * @note   硬件句柄（UART 句柄）、FIFO 结构、物理缓冲区
+ * @note   ((char *)(&tmp_data) + i) 告诉编译器这是一连串单字节的字符指针，接受端按float接收在强转为float（*(float *)rx_buffer）
+ */
+void App_Test_Trigger_UART_DMA(UART_HandleTypeDef *huart, fifo_s_t *fifo, uint8_t *dma_buf, uint16_t max_buf_size)
+{
+    // 1. 检查当前串口状态是否空闲
+    if (huart->gState == HAL_UART_STATE_READY) 
     {
-      phase -= (2.0f * PI);
+        // 2. 获取 FIFO 中待发送的数据长度
+        uint16_t len = fifo_s_used(fifo); 
+        
+        if (len > 0) 
+        {
+            // 防溢出保护：如果 FIFO 里的数据比物理缓冲区大，截断为缓冲区上限
+            if (len > max_buf_size) 
+            {
+                len = max_buf_size;
+            }
+            
+            // 3. 把数据从 FIFO 拿出来放到物理缓冲区
+            fifo_s_gets(fifo, (char *)dma_buf, len);
+            
+            // 4. 开启 DMA 搬运
+            HAL_UART_Transmit_DMA(huart, dma_buf, len);
+        }
     }
-    
-    float amplitude = 175.0f * PI;
-    float offset = 525.0f * PI;
-
-    Target_Omega = offset + amplitude * sinf(phase);
-
-    Plotter_Begin(&my_plotter);
-
-    float current_speed_float = (float)motor_ID1.rx_speed;
-    Plotter_Append(&my_plotter, Target_Omega);
-    Plotter_Append(&my_plotter, current_speed_float);
-    Plotter_Append(&my_plotter, pid_speed.Kp);
-    Plotter_SendData(&my_plotter);
-
-    int32_t Output = (int32_t)PID_Calculate(&pid_speed, motor_ID1.rx_speed, Target_Omega);
-    CAN1_0x200_Tx_Data[2] = Output >> 8;
-    CAN1_0x200_Tx_Data[3] = Output;
-    CAN_Send_Data(&hcan1, 0x200, CAN1_0x200_Tx_Data, 8);
- }
+}

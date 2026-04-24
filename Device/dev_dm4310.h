@@ -3,6 +3,9 @@
 #include "main.h"
 #include "drv_math.h"
 #include "drv_dm4310.h"
+#include "motor_dji.h"
+
+#define MOTOR_LEFT_CANID 0X01
 
 extern int8_t motor_id;
 
@@ -26,7 +29,7 @@ typedef enum
 
 extern dm_motor_t motor[Motor_Max];
 
-void dm4310_motor_init(dm_motor_t *p, uint8_t id, uint8_t init_mode);
+void dm4310_motor_init(CAN_HandleTypeDef *hcan, dm_motor_t *p, uint8_t id, uint16_t init_mode);
 void ctrl_enable(Enum_Motor_Status target_motor);
 void ctrl_disable(Enum_Motor_Status target_motor);
 void ctrl_set(dm_motor_t *motor);
@@ -36,8 +39,8 @@ void ctrl_add(dm_motor_t *motor);
 void ctrl_minus(dm_motor_t *motor);
 void ctrl_send(CAN_HandleTypeDef *hcan, dm_motor_t *motor);
 
-void can1_rx_callback(void);
-void can2_rx_callback(void);
+// void can1_rx_callback(void);
+// void can2_rx_callback(void);
 
 #endif /* __DEV_DM4310_H__ */
 

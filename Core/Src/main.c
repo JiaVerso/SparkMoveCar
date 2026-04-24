@@ -20,7 +20,6 @@
 #include "main.h"
 #include "can.h"
 #include "dma.h"
-#include "drv_dm4310.h"
 #include "usart.h"
 #include "gpio.h"
 
@@ -77,7 +76,7 @@ uint8_t speed_state = 0;
 SerialPlotter_t my_plotter;
 Motor_t motor_ID1;
 PID_t  pid_speed;     // 速度环
-dm_motor_t motor[Motor1];
+extern dm_motor_t motor[Motor_Max];
 
 /**
  * @brief 串口 DMA 循环绕回处理核心算法 (类的方法)
@@ -86,28 +85,7 @@ dm_motor_t motor[Motor1];
  */
 void UART8_Trigger_Tx_DMA(void)
 {
-    // 1. 检查当前串口的 TX 状态是否空闲 (非常重要！)
-    // 如果 DMA 正在搬运上一批数据，千万不能打断它，直接退出
-    if (huart8.gState == HAL_UART_STATE_READY) 
-    {
-        // 2. 看看 FIFO 里有多少待发送的数据
-        uint16_t len = fifo_s_used(uart_rx_fifo); 
-        
-        if (len > 0) 
-        {
-            // 防溢出保护：如果 FIFO 里的数据比我的缓冲区还大，这次只取缓冲区的上限
-            if (len > TX_DMA_BUF_SIZE) 
-            {
-                len = TX_DMA_BUF_SIZE;
-            }
-            
-            // 3. 把数据从 FIFO 拿出来放到物理缓冲区
-            fifo_s_gets(uart_rx_fifo, (char *)tx_dma_buf, len);
-            
-            // 4. 开启 DMA 搬运！
-            HAL_UART_Transmit_DMA(&huart8, tx_dma_buf, len);
-        }
-    }
+    App_Test_Trigger_UART_DMA(&huart8, uart_rx_fifo, tx_dma_buf, TX_DMA_BUF_SIZE);
 }
 
 void Serialplot_Call_Back(uint8_t *Buffer, uint16_t Length)
@@ -129,7 +107,7 @@ void Motor_Cmd_TxCallback(Struct_CAN_Rx_Buffer *Rx_Buffer)
    uint8_t *Rx_Data = Rx_Buffer->Data;
     switch (Rx_Buffer->Header.StdId)
     {
-    case (DM4310_MOTOR):
+    case (DM4310_LEFT_MOTOR):
     {
         dm4310_fbdata(&motor[Motor1], Rx_Data);
     }
@@ -217,7 +195,7 @@ int main(void)
   Uart_Init(&huart8, rx_buffer, 128, Serialplot_Call_Back);
   PID_Init(&pid_speed, 0.0f, 0.0f, 0.0f, 0.0f,2500.0f, 2500.0f);
 
-  dm4310_motor_init(&motor[Motor1], 0x01, POS_MODE)
+  dm4310_motor_init(&hcan1, &motor[Motor1], MOTOR_LEFT_CANID, POS_MODE);
 
   uart_rx_fifo = fifo_s_create(2048);
   HAL_UARTEx_ReceiveToIdle_DMA(&huart8, USART8_Rx_buf, RX_BUF_SIZE);
@@ -226,6 +204,7 @@ int main(void)
   MotorManager_Register(&motor_ID1);
   Plotter_Init(&my_plotter, rx_buffer, 0xAA, UART8_Send_To_Plotter_DMA);
   
+  ctrl_enable(Motor1_Status_ENABLED);
   CAN_Filter_Mask_Config(&hcan1, CAN_FILTER(13) | CAN_FIFO_1 | CAN_STDID | CAN_DATA_TYPE, 0, 0);
   // rt_thread_t tid = rt_thread_create("my_task", my_task_entry, RT_NULL, 1024, 15, 10);
   // if (tid != RT_NULL)
@@ -252,8 +231,16 @@ int main(void)
     // Plotter_Append(&my_plotter, pid_speed.Kp);
     // Plotter_Append(&my_plotter, motor_ID1.rx_torque);
     // Plotter_Append(&my_plotter, motor_ID1.rx_temperature);
+    Counter++;
+    pos_speed_ctrl(&hcan1, motor[Motor1].id, (Counter / 100) % 2 == 0 ? 0.0f : PI, PI);
+    
+    Plotter_Begin(&my_plotter);
+    Plotter_Append(&my_plotter, motor[Motor1].para.pos);
+    Plotter_Append(&my_plotter, motor[Motor1].para.vel);
+    Plotter_Append(&my_plotter, motor[Motor1].para.tor);
+    Plotter_Append(&my_plotter, motor[Motor1].para.Tmos);
+    Plotter_SendData(&my_plotter);
 
-   
     HAL_Delay(10);
   }
   /* USER CODE END 3 */

@@ -9,9 +9,8 @@
  *
  */
 #include "drv_dm4310.h"
-#include "drv_can.h"
 #include "drv_math.h"
-#include <cstdint>
+#include "drv_can.h"
 
 typedef union {
     // Struct 内存大小和数组相同
@@ -21,6 +20,7 @@ typedef union {
     }floats;
 
     uint8_t bytes[8];
+
 } DualFloatConverter_t;
 
 static DualFloatConverter_t my_converter;
@@ -35,7 +35,7 @@ static DualFloatConverter_t my_converter;
 *               支持的控制模式包括位置模式、位置速度控制模式和速度控制模式
 ************************************************************************
 **/
-void dm4310_enable(hcan_t* hcan, dm_motor_t *motor)
+void dm4310_enable(CAN_HandleTypeDef* hcan, dm_motor_t *motor)
 {
 	switch(motor->ctrl.mode)
 	{
@@ -60,7 +60,7 @@ void dm4310_enable(hcan_t* hcan, dm_motor_t *motor)
 *               支持的控制模式包括位置模式、位置速度控制模式和速度控制模式
 ************************************************************************
 **/
-void dm4310_disable(hcan_t* hcan, dm_motor_t *motor)
+void dm4310_disable(CAN_HandleTypeDef* hcan, dm_motor_t *motor)
 {
 	switch(motor->ctrl.mode)
 	{
@@ -86,7 +86,7 @@ void dm4310_disable(hcan_t* hcan, dm_motor_t *motor)
 *               支持的控制模式包括位置模式、位置速度控制模式和速度控制模式
 ************************************************************************
 **/
-void dm4310_ctrl_send(hcan_t* hcan, dm_motor_t *motor)
+void dm4310_ctrl_send(CAN_HandleTypeDef* hcan, dm_motor_t *motor)
 {
 	switch(motor->ctrl.mode)
 	{
@@ -151,7 +151,7 @@ void dm4310_clear_para(dm_motor_t *motor)
 * @details:    	根据电机的控制模式，调用对应模式的清除错误函数
 ************************************************************************
 **/
-void dm4310_clear_err(hcan_t* hcan, dm_motor_t *motor)
+void dm4310_clear_err(CAN_HandleTypeDef* hcan, dm_motor_t *motor)
 {
 	switch(motor->ctrl.mode)
 	{
@@ -201,7 +201,7 @@ void dm4310_fbdata(dm_motor_t *motor, uint8_t *rx_data)
 * @details:    	通过CAN总线向特定电机发送启用特定模式的命令
 ************************************************************************
 **/
-void enable_motor_mode(hcan_t* hcan, uint16_t motor_id, uint16_t mode_id)
+void enable_motor_mode(CAN_HandleTypeDef* hcan, uint16_t motor_id, uint16_t mode_id)
 {
 	uint8_t data[8];
 	uint16_t id = motor_id + mode_id;
@@ -227,7 +227,7 @@ void enable_motor_mode(hcan_t* hcan, uint16_t motor_id, uint16_t mode_id)
 * @details:    	通过CAN总线向特定电机发送禁用特定模式的命令
 ************************************************************************
 **/
-void disable_motor_mode(hcan_t* hcan, uint16_t motor_id, uint16_t mode_id)
+void disable_motor_mode(CAN_HandleTypeDef* hcan, uint16_t motor_id, uint16_t mode_id)
 {
 	uint8_t data[8];
 	uint16_t id = motor_id + mode_id;
@@ -253,7 +253,7 @@ void disable_motor_mode(hcan_t* hcan, uint16_t motor_id, uint16_t mode_id)
 * @details:    	通过CAN总线向特定电机发送保存位置零点的命令
 ************************************************************************
 **/
-void save_pos_zero(hcan_t* hcan, uint16_t motor_id, uint16_t mode_id)
+void save_pos_zero(CAN_HandleTypeDef* hcan, uint16_t motor_id, uint16_t mode_id)
 {
 	uint8_t data[8];
 	uint16_t id = motor_id + mode_id;
@@ -279,7 +279,7 @@ void save_pos_zero(hcan_t* hcan, uint16_t motor_id, uint16_t mode_id)
 * @details:    	通过CAN总线向特定电机发送清除错误的命令。
 ************************************************************************
 **/
-void clear_err(hcan_t* hcan, uint16_t motor_id, uint16_t mode_id)
+void clear_err(CAN_HandleTypeDef* hcan, uint16_t motor_id, uint16_t mode_id)
 {
 	uint8_t data[8];
 	uint16_t id = motor_id + mode_id;
@@ -309,11 +309,11 @@ void clear_err(hcan_t* hcan, uint16_t motor_id, uint16_t mode_id)
 * @details:    	通过CAN总线向电机发送MIT模式下的控制帧。
 ************************************************************************
 **/
-void mit_ctrl(hcan_t* hcan, uint16_t motor_id, float pos, float vel,float kp, float kd, float torq)
+void mit_ctrl(CAN_HandleTypeDef* hcan, uint16_t motor_id, float pos, float vel,float kp, float kd, float torq)
 {
 	uint8_t data[8];
 	uint16_t pos_tmp,vel_tmp,kp_tmp,kd_tmp,tor_tmp;
-	uint16_t id = motor_id + MIT_MODE;
+	// uint16_t id = motor_id + MIT_MODE;
 
 	pos_tmp = float_to_uint(pos,  P_MIN,  P_MAX,  16);
 	vel_tmp = float_to_uint(vel,  V_MIN,  V_MAX,  12);
@@ -330,7 +330,7 @@ void mit_ctrl(hcan_t* hcan, uint16_t motor_id, float pos, float vel,float kp, fl
 	data[6] = ((kd_tmp&0xF)<<4)|(tor_tmp>>8);
 	data[7] = tor_tmp;
 	
-	canx_send_data(hcan, id, data, 8);
+	// canx_send_data(hcan, id, data, 8);
 }
 /**
 ************************************************************************
@@ -342,7 +342,7 @@ void mit_ctrl(hcan_t* hcan, uint16_t motor_id, float pos, float vel,float kp, fl
 * @details:    	通过CAN总线向电机发送位置速度控制命令
 ************************************************************************
 **/
-void pos_speed_ctrl(hcan_t* hcan, uint16_t motor_id, float pos, float vel)
+void pos_speed_ctrl(CAN_HandleTypeDef* hcan, uint16_t motor_id, float pos, float vel)
 {
 	uint16_t id;
 	uint8_t data[8];
@@ -351,15 +351,15 @@ void pos_speed_ctrl(hcan_t* hcan, uint16_t motor_id, float pos, float vel)
     my_converter.floats.param_pos = pos;
     my_converter.floats.param_vel = vel;
 
-	data[0] = bytes[0];
-	data[1] = bytes[1];
-	data[2] = bytes[2];
-    data[3] = bytes[3];
+	data[0] = my_converter.bytes[0];
+	data[1] = my_converter.bytes[1];
+	data[2] = my_converter.bytes[2];
+    data[3] = my_converter.bytes[3];
 
-    data[4] = bytes[4];
-	data[5] = bytes[5];
-	data[6] = bytes[6];
-    data[7] = bytes[7];
+    data[4] = my_converter.bytes[4];
+	data[5] = my_converter.bytes[5];
+	data[6] = my_converter.bytes[6];
+    data[7] = my_converter.bytes[7];
 
 	
 	CAN_Send_Data(&hcan1, id, data, 8);
@@ -374,7 +374,7 @@ void pos_speed_ctrl(hcan_t* hcan, uint16_t motor_id, float pos, float vel)
 * @details:    	通过CAN总线向电机发送速度控制命令
 ************************************************************************
 **/
-void speed_ctrl(hcan_t* hcan,uint16_t motor_id, float vel)
+void speed_ctrl(CAN_HandleTypeDef* hcan,uint16_t motor_id, float vel)
 {
 	uint16_t id;
 	uint8_t *vbuf;
