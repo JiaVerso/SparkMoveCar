@@ -5,8 +5,9 @@
 
 static Motor_t* Motor_Registry[MAX_MOTORS]; // 电机指针数组 (注册表)
 static uint8_t Motor_Count = 0;
+Motor_t DriveMotors[MAX_MOTORS];
 
-const Motor_Config_t Motor_Config_Tanle[MAX_MOTORS] = {
+const Motor_Config_t Motor_Config_Table[MAX_MOTORS] = {
     {DJI_MOTOR_LF, CAN_RX_ID_LF},
     {DJI_MOTOR_RF, CAN_RX_ID_RF},
     {DJI_MOTOR_LM, CAN_RX_ID_LM},
@@ -15,9 +16,10 @@ const Motor_Config_t Motor_Config_Tanle[MAX_MOTORS] = {
     {DJI_MOTOR_RB, CAN_RX_ID_RB}
 };
 
+// 单个电机初始化
 void Motor_Init(Motor_t *motor, uint32_t rx_id, uint32_t tx_id){
     // 安全检查
-    ASSERT(motor);
+    if (motor == NULL) return;
 
     // 绑定 CAN ID
     motor->rx_can_id = rx_id;
@@ -38,6 +40,34 @@ void Motor_Init(Motor_t *motor, uint32_t rx_id, uint32_t tx_id){
 void MotorManager_Register(Motor_t *motor) {
     if (Motor_Count < MAX_MOTORS && motor != NULL) {
         Motor_Registry[Motor_Count++] = motor;
+    }
+}
+
+// 初始化所有的电机
+void All_DriveMotors_Init(void) {
+
+       
+    for (int i = 0; i < MAX_MOTORS; i++) {
+
+        uint32_t rx_motor_id = Motor_Config_Table[i].tx_can_id; 
+        uint32_t tx_motor_id = 0x200; 
+        // 1-4 号电机
+        if (rx_motor_id >= 0x201 && rx_motor_id <= 0x204) {
+            tx_motor_id = 0x200; 
+        } 
+        // 5-8 号电机
+        else if (rx_motor_id >= 0x205 && rx_motor_id <= 0x208) {
+            tx_motor_id = 0x1FF; 
+        } 
+        // 错误检查
+        else {
+            tx_motor_id = 0x000; // ID 错误
+        }
+        
+        Motor_Init(&DriveMotors[i], rx_motor_id + i, tx_motor_id);
+        
+        // 将每个电机注册到统一管理器中
+        MotorManager_Register(&DriveMotors[i]);
     }
 }
 

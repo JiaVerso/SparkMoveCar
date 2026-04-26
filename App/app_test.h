@@ -22,6 +22,10 @@ extern "C" {
 #include "stm32f4xx_hal.h"
 /* Exported macros -----------------------------------------------------------*/
 
+#define KEY_PIN             GPIO_PIN_10
+#define KEY_PORT            GPIOH
+#define LONG_PRESS_TIME_MS  3000  // 定义长按阈值为 3000 毫秒
+
 /* Exported types ------------------------------------------------------------*/
 
 void Test_Motor_Sweep(void);

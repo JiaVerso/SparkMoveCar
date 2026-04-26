@@ -131,6 +131,60 @@ void App_Test_Parse_Command(uint8_t *Buffer, uint16_t Length)
         }
     }
 }
+/**
+ * @brief  手动按键设计电机启动时的“零点位置”
+ * @note   这是一个阻塞型测试函数，仅供开机自检或裸机调试时使用！
+ * @param  "PID=P,I,D"  
+ */
+void check_and_save_homing(void)
+{
+    static uint32_t press_start_tick = 0;
+    static uint8_t  is_pressing = 0;
+    static uint8_t  save_triggered = 0;
+
+    // 1. 读取按键状态 (低电平表示按下)
+    if (HAL_GPIO_ReadPin(KEY_PORT, KEY_PIN) == GPIO_PIN_RESET) 
+    {
+        if (!is_pressing) 
+        {
+            // 初次按下，记录当前起始时间
+            is_pressing = 1;
+            press_start_tick = HAL_GetTick();
+            save_triggered = 0;
+        } 
+        else 
+        {
+            // 持续按下中，计算时长
+            uint32_t duration = HAL_GetTick() - press_start_tick;
+            
+            // 达到 3 秒且本次按压还未触发过
+            if (duration >= LONG_PRESS_TIME_MS && !save_triggered) 
+            {
+                // 执行保存零点操作
+                // 假设你要保存 Motor1 的零点，使用 POS_MODE
+                save_pos_zero(&hcan1, motor[Motor1].para.id, POS_MODE);
+                
+                // 标记已触发，防止在不松手的情况下重复写入 Flash
+                save_triggered = 1;
+                
+                // 通过 LED 给用户一个视觉反馈
+                HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_RESET); // 绿灯亮表示成功
+            }
+        }
+    } 
+    else 
+    {
+        // 2. 按键松开，重置状态
+        if (is_pressing)
+        {
+            is_pressing = 0;
+            // 松开后熄灭反馈灯
+            HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_SET); 
+        }
+    }
+}
+
+
 
 /**
  * @brief  串口多路浮点数发送测试 (用于 SerialPlot 波形查看)
