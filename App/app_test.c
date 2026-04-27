@@ -22,7 +22,7 @@
 /* USER CODE END Includes */
 
 extern PID_t pid_speed;
-
+extern dm_motor_t motor[Motor_Max];
 /**
  * @brief  M3508 电机平滑正反转测试函数 (ID=2)
  * @note   这是一个阻塞型测试函数，仅供开机自检或裸机调试时使用！
@@ -142,7 +142,7 @@ void check_and_save_homing(void)
     static uint8_t  is_pressing = 0;
     static uint8_t  save_triggered = 0;
 
-    // 1. 读取按键状态 (低电平表示按下)
+    // 读取按键状态
     if (HAL_GPIO_ReadPin(KEY_PORT, KEY_PIN) == GPIO_PIN_RESET) 
     {
         if (!is_pressing) 
@@ -174,7 +174,7 @@ void check_and_save_homing(void)
     } 
     else 
     {
-        // 2. 按键松开，重置状态
+        // 按键松开，重置状态
         if (is_pressing)
         {
             is_pressing = 0;

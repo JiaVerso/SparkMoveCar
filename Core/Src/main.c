@@ -20,6 +20,8 @@
 #include "main.h"
 #include "can.h"
 #include "dma.h"
+#include "drv_imu.h"
+#include "spi.h"
 #include "usart.h"
 #include "gpio.h"
 
@@ -130,27 +132,15 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+void motor_thread_entry(void *parameter)
+{
+  while (1)
+  {
+    Counter++;
+    pos_speed_ctrl(&hcan1, motor[Motor1].id, (Counter / 100) % 2 == 0 ? 0.0f : PI, PI);
 
-void my_task_entry(void *parameter)
-{   
-  
-    // uart_rx_fifo = fifo_s_create(1024);
-
-    // HAL_UARTEx_ReceiveToIdle_DMA(&huart7, USART7_Rx_buf, RX_BUF_SIZE);
-
-    while (1)
-    {     	
-      // if (huart7.gState == HAL_UART_STATE_READY) 
-      //   {
-      //       HAL_UART_Transmit_DMA(&huart7, tx_temp_buf, 5);
-      //   }
-      HAL_GPIO_WritePin(LED_RED_GPIO_Port, LED_RED_Pin, GPIO_PIN_RESET);
-      HAL_Delay(500);
-      HAL_GPIO_WritePin(LED_RED_GPIO_Port, LED_RED_Pin, GPIO_PIN_SET);
-      HAL_Delay(500);
-      //   // 必须加延时，否则 RT-Thread 的其他低优先级任务（如 idle）会被饿死
-      //   rt_thread_mdelay(5);
-    }
+    rt_thread_mdelay(10);
+  }
 }
 
 /* USER CODE END 0 */
@@ -188,6 +178,7 @@ int main(void)
   MX_UART8_Init();
   MX_CAN1_Init();
   MX_CAN2_Init();
+  MX_SPI5_Init();
   /* USER CODE BEGIN 2 */
 
   BSP_Init(BSP_DC_LU_ON | BSP_DC_LD_ON | BSP_DC_RU_ON | BSP_DC_RD_ON | BSP_LED_GREEN_ON, 0, 0);
@@ -206,11 +197,12 @@ int main(void)
   
   ctrl_enable(Motor1_Status_ENABLED);
   CAN_Filter_Mask_Config(&hcan1, CAN_FILTER(13) | CAN_FIFO_1 | CAN_STDID | CAN_DATA_TYPE, 0, 0);
-  // rt_thread_t tid = rt_thread_create("my_task", my_task_entry, RT_NULL, 1024, 15, 10);
-  // if (tid != RT_NULL)
-  //   {
-  //       rt_thread_startup(tid);
-  //   }
+
+  /* 创建并启动电机控制线程 (优先级 15) */
+  // rt_thread_t motor_tid = rt_thread_create("motor", motor_thread_entry, RT_NULL, 1024, 15, 10);
+  // rt_thread_startup(motor_tid);
+
+  mpu_device_init();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -231,17 +223,18 @@ int main(void)
     // Plotter_Append(&my_plotter, pid_speed.Kp);
     // Plotter_Append(&my_plotter, motor_ID1.rx_torque);
     // Plotter_Append(&my_plotter, motor_ID1.rx_temperature);
-    Counter++;
-    pos_speed_ctrl(&hcan1, motor[Motor1].id, (Counter / 100) % 2 == 0 ? 0.0f : PI, PI);
-    
-    Plotter_Begin(&my_plotter);
-    Plotter_Append(&my_plotter, motor[Motor1].para.pos);
-    Plotter_Append(&my_plotter, motor[Motor1].para.vel);
-    Plotter_Append(&my_plotter, motor[Motor1].para.tor);
-    Plotter_Append(&my_plotter, motor[Motor1].para.Tmos);
-    Plotter_SendData(&my_plotter);
 
-    HAL_Delay(10);
+    // Plotter_Begin(&my_plotter);
+    // Plotter_Append(&my_plotter, motor[Motor1].para.pos);
+    // Plotter_Append(&my_plotter, motor[Motor1].para.vel);
+    // Plotter_Append(&my_plotter, motor[Motor1].para.tor);
+    // Plotter_Append(&my_plotter, motor[Motor1].para.Tmos);
+    // Plotter_SendData(&my_plotter);
+
+    mpu_get_data();
+    HAL_UART_Transmit_DMA(&huart8, (const uint8_t *)&imu, sizeof(imu_t));
+
+    rt_thread_mdelay(20);
   }
   /* USER CODE END 3 */
 }

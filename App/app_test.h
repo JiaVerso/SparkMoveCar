@@ -20,6 +20,7 @@ extern "C" {
 #include "drv_math.h"
 #include "fifo.h"
 #include "stm32f4xx_hal.h"
+#include "dev_dm4310.h"
 /* Exported macros -----------------------------------------------------------*/
 
 #define KEY_PIN             GPIO_PIN_10

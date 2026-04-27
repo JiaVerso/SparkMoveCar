@@ -64,6 +64,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     Device/drv_dm4310.c
     Device/dev_dm4310.c
     Bsp/drv_math.c
+    Bsp/drv_imu.c
     # Add user sources here
 )
 
