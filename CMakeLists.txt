@@ -65,6 +65,14 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     Device/dev_dm4310.c
     Bsp/drv_math.c
     Bsp/drv_imu.c
+    Modules/QuaternionEKF/QuaternionEKF.c
+    Modules/QuaternionEKF/kalman_filter.c
+    Drivers/CMSIS/DSP/Source/MatrixFunctions/arm_mat_init_f32.c
+    Drivers/CMSIS/DSP/Source/MatrixFunctions/arm_mat_add_f32.c
+    Drivers/CMSIS/DSP/Source/MatrixFunctions/arm_mat_sub_f32.c
+    Drivers/CMSIS/DSP/Source/MatrixFunctions/arm_mat_mult_f32.c
+    Drivers/CMSIS/DSP/Source/MatrixFunctions/arm_mat_trans_f32.c
+    Drivers/CMSIS/DSP/Source/MatrixFunctions/arm_mat_inverse_f32.c
     # Add user sources here
 )
 
@@ -76,6 +84,8 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     Bsp
     Device
     App
+    Modules/QuaternionEKF
+    Drivers/CMSIS/DSP/Include
 )
 
 # Add project symbols (macros)

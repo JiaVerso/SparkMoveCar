@@ -37,9 +37,9 @@ typedef struct
 	int16_t ay_offset;
 	int16_t az_offset;
 
-	int16_t gx_offset;
-	int16_t gy_offset;
-	int16_t gz_offset;
+	float gx_offset;
+	float gy_offset;
+	float gz_offset;
 } mpu_data_t;
 
 typedef struct

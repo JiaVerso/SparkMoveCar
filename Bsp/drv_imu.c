@@ -225,9 +225,7 @@ uint8_t mpu_device_init(void)
 	*/
 void mpu_offset_call(void)
 {
-	int32_t ax_sum = 0;
-	int32_t ay_sum = 0;
-	int32_t az_sum = 0;
+
 	int32_t gx_sum = 0;
 	int32_t gy_sum = 0;
 	int32_t gz_sum = 0;
@@ -240,26 +238,20 @@ void mpu_offset_call(void)
 	mpu_data.gy_offset = 0;
 	mpu_data.gz_offset = 0;
 
-	for (i=0; i<300;i++)
+	for (i=0; i<1000;i++)
 	{
 		mpu_read_bytes(MPU6500_ACCEL_XOUT_H, mpu_buff, 14);
-
-		ax_sum += (int16_t)(mpu_buff[0] << 8 | mpu_buff[1]);
-		ay_sum += (int16_t)(mpu_buff[2] << 8 | mpu_buff[3]);
-		az_sum += (int16_t)(mpu_buff[4] << 8 | mpu_buff[5]);
 	
 		gx_sum += (int16_t)(mpu_buff[8]  << 8 | mpu_buff[9]);
 		gy_sum += (int16_t)(mpu_buff[10] << 8 | mpu_buff[11]);
 		gz_sum += (int16_t)(mpu_buff[12] << 8 | mpu_buff[13]);
 
-		MPU_DELAY(5);
+		MPU_DELAY(2);
 	}
-	mpu_data.ax_offset = (int16_t)(ax_sum / 300);
-	mpu_data.ay_offset = (int16_t)(ay_sum / 300);
-	mpu_data.az_offset = (int16_t)(az_sum / 300);
-	mpu_data.gx_offset = (int16_t)(gx_sum / 300);
-	mpu_data.gy_offset = (int16_t)(gy_sum / 300);
-	mpu_data.gz_offset = (int16_t)(gz_sum / 300);
+
+	mpu_data.gx_offset = (int16_t)(gx_sum / 1000);
+	mpu_data.gy_offset = (int16_t)(gy_sum / 1000);
+	mpu_data.gz_offset = (int16_t)(gz_sum / 1000);
 }
 
 

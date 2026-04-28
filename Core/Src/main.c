@@ -20,7 +20,6 @@
 #include "main.h"
 #include "can.h"
 #include "dma.h"
-#include "drv_imu.h"
 #include "spi.h"
 #include "usart.h"
 #include "gpio.h"
@@ -43,6 +42,8 @@
 #include "drv_math.h"
 #include "dev_dm4310.h"
 #include "drv_dm4310.h"
+#include "drv_imu.h"
+#include "QuaternionEKF.h" 
 
 /* USER CODE END Includes */
 
@@ -80,6 +81,22 @@ Motor_t motor_ID1;
 PID_t  pid_speed;     // 速度环
 extern dm_motor_t motor[Motor_Max];
 
+int8_t gyro_map[3]  = {1, 2, 3};
+int8_t accel_map[3] = {1, 2, 3};
+
+typedef union {
+    float f_data[4];      // 3个数据 + 1个包尾 = 4个float
+    uint8_t byte_data[16]; // 4 * 4 = 16 字节
+} VOFA_JustFloat_t;
+
+VOFA_JustFloat_t vofa_packet;
+
+void VOFA_Init(void) {
+    vofa_packet.byte_data[12] = 0x00;
+    vofa_packet.byte_data[13] = 0x00;
+    vofa_packet.byte_data[14] = 0x80;
+    vofa_packet.byte_data[15] = 0x7F;
+}
 /**
  * @brief 串口 DMA 循环绕回处理核心算法 (类的方法)
  * @param obj 串口管理对象指针
@@ -203,6 +220,9 @@ int main(void)
   // rt_thread_startup(motor_tid);
 
   mpu_device_init();
+
+  IMU_QuaternionEKF_Init(10.0f, 0.001f, 1.0e7f, 1.0f, 0.01f);
+  IMU_QuaternionEKF_Set_MPU6500_Config(16.384f, 4096.0f, 9.80665f, gyro_map, accel_map);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -231,10 +251,27 @@ int main(void)
     // Plotter_Append(&my_plotter, motor[Motor1].para.Tmos);
     // Plotter_SendData(&my_plotter);
 
-    mpu_get_data();
-    HAL_UART_Transmit_DMA(&huart8, (const uint8_t *)&imu, sizeof(imu_t));
+    // mpu_get_data();
+    // HAL_UART_Transmit_DMA(&huart8, (const uint8_t *)&imu, sizeof(imu_t));
 
-    rt_thread_mdelay(20);
+    // rt_thread_mdelay(20);
+
+    float dt = 0.001f; // 例子：1ms，实际请用你的真实周期
+    mpu_get_data();
+
+        IMU_QuaternionEKF_Update_MPU6500_Raw(
+            mpu_data.gx, mpu_data.gy, mpu_data.gz,
+            mpu_data.ax, mpu_data.ay, mpu_data.az,
+            dt
+        );
+       vofa_packet.f_data[0] = QEKF_INS.Roll;
+    vofa_packet.f_data[1] = QEKF_INS.Pitch;
+    vofa_packet.f_data[2] = QEKF_INS.Yaw;
+    vofa_packet.byte_data[12] = 0x00;
+    vofa_packet.byte_data[13] = 0x00;
+    vofa_packet.byte_data[14] = 0x80;
+    vofa_packet.byte_data[15] = 0x7F;
+    HAL_UART_Transmit_DMA(&huart8, vofa_packet.byte_data, 16);
   }
   /* USER CODE END 3 */
 }
