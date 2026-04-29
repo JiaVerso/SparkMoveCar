@@ -256,7 +256,7 @@ int main(void)
 
     // rt_thread_mdelay(20);
 
-    float dt = 0.001f; // 例子：1ms，实际请用你的真实周期
+    float dt = 0.001f; 
     mpu_get_data();
 
         IMU_QuaternionEKF_Update_MPU6500_Raw(
@@ -264,13 +264,15 @@ int main(void)
             mpu_data.ax, mpu_data.ay, mpu_data.az,
             dt
         );
-       vofa_packet.f_data[0] = QEKF_INS.Roll;
+
+    vofa_packet.f_data[0] = QEKF_INS.Roll;
     vofa_packet.f_data[1] = QEKF_INS.Pitch;
     vofa_packet.f_data[2] = QEKF_INS.Yaw;
     vofa_packet.byte_data[12] = 0x00;
     vofa_packet.byte_data[13] = 0x00;
     vofa_packet.byte_data[14] = 0x80;
     vofa_packet.byte_data[15] = 0x7F;
+    
     HAL_UART_Transmit_DMA(&huart8, vofa_packet.byte_data, 16);
   }
   /* USER CODE END 3 */

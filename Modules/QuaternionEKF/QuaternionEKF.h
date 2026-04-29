@@ -62,7 +62,7 @@ typedef struct
 
     float OrientationCosine[3];
 
-    float accLPFcoef;
+    float accLPFcoef;   // 滤波器时间常数 
     float gyro_norm;
     float accl_norm;
     float AdaptiveGainScale;

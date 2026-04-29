@@ -139,8 +139,10 @@ void IMU_QuaternionEKF_Update(float gx, float gy, float gz, float ax, float ay, 
 {
     // 0.5(Ohm-Ohm^bias)*deltaT,用于更新工作点处的状态转移F矩阵
     static float halfgxdt, halfgydt, halfgzdt;
-    static float accelInvNorm;
-    static float accl_norm_sq;
+    static float accelInvNorm;      // 加速度模长的倒数平方根，用来归一化
+    static float accl_norm_sq;      // 加速度平方和
+
+    // 初始化检查
     if (!QEKF_INS.Initialized)
     {
         IMU_QuaternionEKF_Init(10, 0.001, 1000000 * 10, 0.9996 * 0 + 1, 0);
@@ -160,11 +162,13 @@ void IMU_QuaternionEKF_Update(float gx, float gy, float gz, float ax, float ay, 
     */
     QEKF_INS.dt = dt;
 
+    // 去掉陀螺仪零偏（原始角速度不能直接积分）
     QEKF_INS.Gyro[0] = gx - QEKF_INS.GyroBias[0];
     QEKF_INS.Gyro[1] = gy - QEKF_INS.GyroBias[1];
     QEKF_INS.Gyro[2] = gz - QEKF_INS.GyroBias[2];
 
-    // set F
+    // func: 把陀螺仪得到的角速度转化为四元数在三维空间中旋转的数学规则.
+    // q_dot = 0.5 * Omega(w) * q 离散化
     halfgxdt = 0.5f * QEKF_INS.Gyro[0] * dt;
     halfgydt = 0.5f * QEKF_INS.Gyro[1] * dt;
     halfgzdt = 0.5f * QEKF_INS.Gyro[2] * dt;
@@ -196,26 +200,33 @@ void IMU_QuaternionEKF_Update(float gx, float gy, float gz, float ax, float ay, 
         QEKF_INS.Accel[1] = ay;
         QEKF_INS.Accel[2] = az;
     }
+    // 低通滤波器--本质是互补加权滤波 
+    // Yn = (1-a)*Y(n-1) + a*Xn -- a为定义的系数
     QEKF_INS.Accel[0] = QEKF_INS.Accel[0] * QEKF_INS.accLPFcoef / (QEKF_INS.dt + QEKF_INS.accLPFcoef) + ax * QEKF_INS.dt / (QEKF_INS.dt + QEKF_INS.accLPFcoef);
     QEKF_INS.Accel[1] = QEKF_INS.Accel[1] * QEKF_INS.accLPFcoef / (QEKF_INS.dt + QEKF_INS.accLPFcoef) + ay * QEKF_INS.dt / (QEKF_INS.dt + QEKF_INS.accLPFcoef);
     QEKF_INS.Accel[2] = QEKF_INS.Accel[2] * QEKF_INS.accLPFcoef / (QEKF_INS.dt + QEKF_INS.accLPFcoef) + az * QEKF_INS.dt / (QEKF_INS.dt + QEKF_INS.accLPFcoef);
 
-    // set z,单位化重力加速度向量
+    // 加速度平方和计算
     accl_norm_sq = QEKF_INS.Accel[0] * QEKF_INS.Accel[0] + QEKF_INS.Accel[1] * QEKF_INS.Accel[1] + QEKF_INS.Accel[2] * QEKF_INS.Accel[2];
     if (accl_norm_sq < 1e-12f)
     {
         return;
     }
+    // 取倒数（加速度归一化）
     accelInvNorm = invSqrt(accl_norm_sq);
+    
+    // 把加速度当成单位重力方向（只关心方向）
     for (uint8_t i = 0; i < 3; i++)
     {
         QEKF_INS.IMU_QuaternionEKF.MeasuredVector[i] = QEKF_INS.Accel[i] * accelInvNorm; // 用加速度向量更新量测值
     }
 
-    // get body state
+    // 获取角速度大小
     QEKF_INS.gyro_norm = 1.0f / invSqrt(QEKF_INS.Gyro[0] * QEKF_INS.Gyro[0] +
                                         QEKF_INS.Gyro[1] * QEKF_INS.Gyro[1] +
                                         QEKF_INS.Gyro[2] * QEKF_INS.Gyro[2]);
+
+    // 获取加速度大小
     QEKF_INS.accl_norm = 1.0f / accelInvNorm;
 
     // 如果角速度小于阈值且加速度处于设定范围内,认为运动稳定,加速度可以用于修正角速度
@@ -260,6 +271,8 @@ void IMU_QuaternionEKF_Update(float gx, float gy, float gz, float ax, float ay, 
     QEKF_INS.Roll = asinf(-2.0f * (QEKF_INS.q[1] * QEKF_INS.q[3] - QEKF_INS.q[0] * QEKF_INS.q[2])) * 57.295779513f;
 
     // get Yaw total, yaw数据可能会超过360,处理一下方便其他功能使用(如小陀螺)
+    // 角度解包，atan函数输出[-180,180]，数据会跳变，假设当前角度为180，下一秒就到-180，为了防止这种情况，
+    // 采用计圈数 + 当前角度，比如当前角度-之前角度 > 输出范围，角度 = 360 * yawroundcount + now_angle ;
     if (QEKF_INS.Yaw - QEKF_INS.YawAngleLast > 180.0f)
     {
         QEKF_INS.YawRoundCount--;
@@ -521,8 +534,7 @@ static void IMU_QuaternionEKF_xhatUpdate(KalmanFilter_t *kf)
  *
  * @param kf kf类型定义
  */
-void IMU_QuaternionEKF_Update_MPU6500_Raw(int16_t gx_raw, int16_t gy_raw, int16_t gz_raw,
-                                          int16_t ax_raw, int16_t ay_raw, int16_t az_raw, float dt)
+void IMU_QuaternionEKF_Update_MPU6500_Raw(int16_t gx_raw, int16_t gy_raw, int16_t gz_raw, int16_t ax_raw, int16_t ay_raw, int16_t az_raw, float dt)
 {
     const int16_t gyro_raw[3] = {gx_raw, gy_raw, gz_raw};
     const int16_t accel_raw[3] = {ax_raw, ay_raw, az_raw};
