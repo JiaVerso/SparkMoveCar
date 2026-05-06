@@ -44,6 +44,7 @@
 #include "drv_dm4310.h"
 #include "drv_imu.h"
 #include "QuaternionEKF.h" 
+#include "dev_dm_imu.h"
 
 /* USER CODE END Includes */
 
@@ -90,6 +91,7 @@ typedef union {
 } VOFA_JustFloat_t;
 
 VOFA_JustFloat_t vofa_packet;
+extern imu_t imu;
 
 void VOFA_Init(void) {
     vofa_packet.byte_data[12] = 0x00;
@@ -126,9 +128,19 @@ void Motor_Cmd_TxCallback(Struct_CAN_Rx_Buffer *Rx_Buffer)
    uint8_t *Rx_Data = Rx_Buffer->Data;
     switch (Rx_Buffer->Header.StdId)
     {
-    case (DM4310_LEFT_MOTOR):
+    case (0x00):
+    case (0x11):
     {
-        dm4310_fbdata(&motor[Motor1], Rx_Data);
+        // dm4310_fbdata(&motor[Motor1], Rx_Data);
+        HAL_GPIO_TogglePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin); 
+        IMU_UpdateData(Rx_Data);
+    }
+    break;
+    case (0x01):
+    {
+        // dm4310_fbdata(&motor[Motor1], Rx_Data);
+        HAL_GPIO_TogglePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin); 
+        IMU_UpdateData(Rx_Data);
     }
     break;
     }
@@ -199,11 +211,14 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   BSP_Init(BSP_DC_LU_ON | BSP_DC_LD_ON | BSP_DC_RU_ON | BSP_DC_RD_ON | BSP_LED_GREEN_ON, 0, 0);
-  CAN_Init(&hcan1, Motor_Cmd_TxCallback);
+  CAN_Init(&hcan2, Motor_Cmd_TxCallback);
   Uart_Init(&huart8, rx_buffer, 128, Serialplot_Call_Back);
   PID_Init(&pid_speed, 0.0f, 0.0f, 0.0f, 0.0f,2500.0f, 2500.0f);
 
-  dm4310_motor_init(&hcan1, &motor[Motor1], MOTOR_LEFT_CANID, POS_MODE);
+  dm4310_motor_init(&hcan2, &motor[Motor1], MOTOR_LEFT_CANID, POS_MODE);
+  // DM-BMI088初始化
+  imu_init(0x01, 0x11, &hcan2);
+  imu_change_to_active();
 
   uart_rx_fifo = fifo_s_create(2048);
   HAL_UARTEx_ReceiveToIdle_DMA(&huart8, USART8_Rx_buf, RX_BUF_SIZE);
@@ -213,16 +228,16 @@ int main(void)
   Plotter_Init(&my_plotter, rx_buffer, 0xAA, UART8_Send_To_Plotter_DMA);
   
   ctrl_enable(Motor1_Status_ENABLED);
-  CAN_Filter_Mask_Config(&hcan1, CAN_FILTER(13) | CAN_FIFO_1 | CAN_STDID | CAN_DATA_TYPE, 0, 0);
+  CAN_Filter_Mask_Config(&hcan2, CAN_FILTER(27) | CAN_FIFO_1 | CAN_STDID | CAN_DATA_TYPE, 0, 0);
 
   /* 创建并启动电机控制线程 (优先级 15) */
   // rt_thread_t motor_tid = rt_thread_create("motor", motor_thread_entry, RT_NULL, 1024, 15, 10);
   // rt_thread_startup(motor_tid);
 
-  mpu_device_init();
+  // mpu_device_init();
 
-  IMU_QuaternionEKF_Init(10.0f, 0.001f, 1.0e7f, 1.0f, 0.01f);
-  IMU_QuaternionEKF_Set_MPU6500_Config(16.384f, 4096.0f, 9.80665f, gyro_map, accel_map);
+  // IMU_QuaternionEKF_Init(10.0f, 0.001f, 1.0e7f, 1.0f, 0.01f);
+  // IMU_QuaternionEKF_Set_MPU6500_Config(16.384f, 4096.0f, 9.80665f, gyro_map, accel_map);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -256,23 +271,23 @@ int main(void)
 
     // rt_thread_mdelay(20);
 
-    float dt = 0.001f; 
-    mpu_get_data();
+    // float dt = 0.001f; 
+    // mpu_get_data();
 
-        IMU_QuaternionEKF_Update_MPU6500_Raw(
-            mpu_data.gx, mpu_data.gy, mpu_data.gz,
-            mpu_data.ax, mpu_data.ay, mpu_data.az,
-            dt
-        );
-
-    vofa_packet.f_data[0] = QEKF_INS.Roll;
-    vofa_packet.f_data[1] = QEKF_INS.Pitch;
-    vofa_packet.f_data[2] = QEKF_INS.Yaw;
+    //     IMU_QuaternionEKF_Update_MPU6500_Raw(
+    //         mpu_data.gx, mpu_data.gy, mpu_data.gz,
+    //         mpu_data.ax, mpu_data.ay, mpu_data.az,
+    //         dt
+    //     );
+    HAL_Delay(10);
+    vofa_packet.f_data[0] = imu.rol;
+    vofa_packet.f_data[1] = imu.pit;
+    vofa_packet.f_data[2] = imu.yaw;
     vofa_packet.byte_data[12] = 0x00;
     vofa_packet.byte_data[13] = 0x00;
     vofa_packet.byte_data[14] = 0x80;
     vofa_packet.byte_data[15] = 0x7F;
-    
+
     HAL_UART_Transmit_DMA(&huart8, vofa_packet.byte_data, 16);
   }
   /* USER CODE END 3 */
@@ -386,3 +401,4 @@ void assert_failed(uint8_t *file, uint32_t line)
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
+

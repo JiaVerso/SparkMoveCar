@@ -14,6 +14,7 @@
 
 #include <stdint.h>
 #include <math.h>
+#include "stm32f4xx_hal.h"
 
 #define MPU_DELAY(x) HAL_Delay(x)
 
@@ -44,6 +45,10 @@ typedef struct
 
 typedef struct
 {
+	uint8_t can_id;
+	uint8_t mst_id;
+	CAN_HandleTypeDef *can_handle;
+
 	int16_t ax;
 	int16_t ay;
 	int16_t az;
@@ -61,6 +66,10 @@ typedef struct
 	float vx;
 	float vy;
 	float vz;
+
+	float gyro[3];
+	float accel[3];
+	float q[4];
 
 	float rol;
 	float pit;

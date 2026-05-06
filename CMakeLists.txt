@@ -67,6 +67,8 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     Bsp/drv_imu.c
     Modules/QuaternionEKF/QuaternionEKF.c
     Modules/QuaternionEKF/kalman_filter.c
+    Device/dev_dm_imu.c
+
     Drivers/CMSIS/DSP/Source/MatrixFunctions/arm_mat_init_f32.c
     Drivers/CMSIS/DSP/Source/MatrixFunctions/arm_mat_add_f32.c
     Drivers/CMSIS/DSP/Source/MatrixFunctions/arm_mat_sub_f32.c
