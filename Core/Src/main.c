@@ -85,6 +85,13 @@ extern dm_motor_t motor[Motor_Max];
 int8_t gyro_map[3]  = {1, 2, 3};
 int8_t accel_map[3] = {1, 2, 3};
 
+
+static volatile uint32_t imu_can_count = 0;
+static volatile uint8_t imu_last_type = 0;
+static volatile uint32_t imu_last_id = 0;
+
+
+
 typedef union {
     float f_data[4];      // 3个数据 + 1个包尾 = 4个float
     uint8_t byte_data[16]; // 4 * 4 = 16 字节
@@ -128,21 +135,16 @@ void Motor_Cmd_TxCallback(Struct_CAN_Rx_Buffer *Rx_Buffer)
    uint8_t *Rx_Data = Rx_Buffer->Data;
     switch (Rx_Buffer->Header.StdId)
     {
-    case (0x00):
     case (0x11):
     {
-        // dm4310_fbdata(&motor[Motor1], Rx_Data);
-        HAL_GPIO_TogglePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin); 
-        IMU_UpdateData(Rx_Data);
-    }
-    break;
-    case (0x01):
-    {
-        // dm4310_fbdata(&motor[Motor1], Rx_Data);
-        HAL_GPIO_TogglePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin); 
-        IMU_UpdateData(Rx_Data);
-    }
-    break;
+      // dm4310_fbdata(&motor[Motor1], Rx_Data);
+      imu_can_count++;
+      imu_last_type = Rx_Data[0];
+      imu_last_id = Rx_Buffer->Header.StdId;
+
+      HAL_GPIO_TogglePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin);
+      IMU_UpdateData(Rx_Data);
+    } break;
     }
 }
 
@@ -210,26 +212,28 @@ int main(void)
   MX_SPI5_Init();
   /* USER CODE BEGIN 2 */
 
-  BSP_Init(BSP_DC_LU_ON | BSP_DC_LD_ON | BSP_DC_RU_ON | BSP_DC_RD_ON | BSP_LED_GREEN_ON, 0, 0);
-  CAN_Init(&hcan2, Motor_Cmd_TxCallback);
-  Uart_Init(&huart8, rx_buffer, 128, Serialplot_Call_Back);
-  PID_Init(&pid_speed, 0.0f, 0.0f, 0.0f, 0.0f,2500.0f, 2500.0f);
-
-  dm4310_motor_init(&hcan2, &motor[Motor1], MOTOR_LEFT_CANID, POS_MODE);
-  // DM-BMI088初始化
-  imu_init(0x01, 0x11, &hcan2);
-  imu_change_to_active();
-
-  uart_rx_fifo = fifo_s_create(2048);
-  HAL_UARTEx_ReceiveToIdle_DMA(&huart8, USART8_Rx_buf, RX_BUF_SIZE);
-
-  Motor_Init(&motor_ID1, 0x202, 0x200);
-  MotorManager_Register(&motor_ID1);
-  Plotter_Init(&my_plotter, rx_buffer, 0xAA, UART8_Send_To_Plotter_DMA);
+  BSP_Init(BSP_DC_LU_ON | BSP_DC_LD_ON | BSP_DC_RU_ON | BSP_DC_RD_ON | BSP_LED_RED_ON, 0, 0);
   
-  ctrl_enable(Motor1_Status_ENABLED);
-  CAN_Filter_Mask_Config(&hcan2, CAN_FILTER(27) | CAN_FIFO_1 | CAN_STDID | CAN_DATA_TYPE, 0, 0);
+  Uart_Init(&huart8, rx_buffer, 128, Serialplot_Call_Back);
+  // PID_Init(&pid_speed, 0.0f, 0.0f, 0.0f, 0.0f,2500.0f, 2500.0f);
 
+  // dm4310_motor_init(&hcan1, &motor[Motor1], MOTOR_LEFT_CANID, POS_MODE);
+  // // DM-BMI088初始化
+
+  // uart_rx_fifo = fifo_s_create(2048);
+  // HAL_UARTEx_ReceiveToIdle_DMA(&huart8, USART8_Rx_buf, RX_BUF_SIZE);
+
+  // Motor_Init(&motor_ID1, 0x202, 0x200);
+  // MotorManager_Register(&motor_ID1);
+  // Plotter_Init(&my_plotter, rx_buffer, 0xAA, UART8_Send_To_Plotter_DMA);
+  
+  // ctrl_enable(Motor1_Status_ENABLED);
+  
+  CAN_Filter_Mask_Config(&hcan1, CAN_FILTER(13) | CAN_FIFO_1 | CAN_STDID | CAN_DATA_TYPE, 0, 0);
+  CAN_Init(&hcan1, Motor_Cmd_TxCallback);
+  
+  
+  // imu_change_to_active();
   /* 创建并启动电机控制线程 (优先级 15) */
   // rt_thread_t motor_tid = rt_thread_create("motor", motor_thread_entry, RT_NULL, 1024, 15, 10);
   // rt_thread_startup(motor_tid);
@@ -279,16 +283,27 @@ int main(void)
     //         mpu_data.ax, mpu_data.ay, mpu_data.az,
     //         dt
     //     );
-    HAL_Delay(10);
-    vofa_packet.f_data[0] = imu.rol;
-    vofa_packet.f_data[1] = imu.pit;
-    vofa_packet.f_data[2] = imu.yaw;
-    vofa_packet.byte_data[12] = 0x00;
-    vofa_packet.byte_data[13] = 0x00;
-    vofa_packet.byte_data[14] = 0x80;
-    vofa_packet.byte_data[15] = 0x7F;
+    // HAL_Delay(10);
+    // vofa_packet.f_data[0] = imu.rol;
+    // vofa_packet.f_data[1] = imu.pit;
+    // vofa_packet.f_data[2] = imu.yaw;
+    // // vofa_packet.byte_data[12] = 0x00;
+    // // vofa_packet.byte_data[13] = 0x00;
+    // // vofa_packet.byte_data[14] = 0x80;
+    // // vofa_packet.byte_data[15] = 0x7F;
 
-    HAL_UART_Transmit_DMA(&huart8, vofa_packet.byte_data, 16);
+    // HAL_UART_Transmit_DMA(&huart8, vofa_packet.byte_data, 16);
+imu_init(0x01, 0x11, &hcan1);
+  imu_change_to_active();
+
+    char msg[64];
+int len = snprintf(msg, sizeof(msg), "cnt=%lu id=%03lX type=%u\r\n",
+                   (unsigned long)imu_can_count,
+                   (unsigned long)imu_last_id,
+                   (unsigned int)imu_last_type);
+HAL_UART_Transmit(&huart8, (uint8_t *)msg, len, 100);
+HAL_Delay(200);
+
   }
   /* USER CODE END 3 */
 }

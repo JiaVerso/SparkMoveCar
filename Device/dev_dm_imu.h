@@ -1,5 +1,5 @@
-#ifndef __DEV_DM_IMU_H
-#define __DEV_DM_IMU_H
+#ifndef __DM_IMU_H
+#define __DM_IMU_H
 
 #include "stm32f4xx_hal.h"
 
@@ -68,7 +68,7 @@ typedef enum
 
 
 
-typedef struct DM_IMU
+typedef struct
 {
 	uint8_t can_id;
 	uint8_t mst_id;
@@ -86,7 +86,7 @@ typedef struct DM_IMU
 
 	float cur_temp;
 
-}dm_imu_t;
+}imu_t;
 
 void imu_init(uint8_t can_id,uint8_t mst_id,CAN_HandleTypeDef *hcan);
 void imu_write_reg(uint8_t reg_id,uint32_t data);
