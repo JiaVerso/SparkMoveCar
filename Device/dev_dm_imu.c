@@ -39,7 +39,7 @@ static void imu_send_cmd(uint8_t reg_id, uint8_t ac, uint32_t data)
 
 void imu_write_reg(uint8_t reg_id, uint32_t data)
 {
-	imu_send_cmd(reg_id, 3, data);
+	imu_send_cmd(reg_id, CMD_WRITE, data);
 }
 
 void imu_read_reg(uint8_t reg_id)

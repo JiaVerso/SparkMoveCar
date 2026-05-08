@@ -21,6 +21,7 @@
 #include "can.h"
 #include "dma.h"
 #include "spi.h"
+#include "stm32f4xx_hal.h"
 #include "usart.h"
 #include "gpio.h"
 
@@ -85,13 +86,6 @@ extern dm_motor_t motor[Motor_Max];
 int8_t gyro_map[3]  = {1, 2, 3};
 int8_t accel_map[3] = {1, 2, 3};
 
-
-static volatile uint32_t imu_can_count = 0;
-static volatile uint8_t imu_last_type = 0;
-static volatile uint32_t imu_last_id = 0;
-
-
-
 typedef union {
     float f_data[4];      // 3个数据 + 1个包尾 = 4个float
     uint8_t byte_data[16]; // 4 * 4 = 16 字节
@@ -123,29 +117,23 @@ void Serialplot_Call_Back(uint8_t *Buffer, uint16_t Length)
 
  /* ---------------------------------------CAN Callback Configuration--------------------------------------------------------*/
 /**
-  * @brief  滤波器在CAN总线上获取到目标ID触发中断
-  * @param  hcan CAN编号
-  * @param  header  Rx接收头
-  * @param  HAL_CAN_GetRxMessage HAL库内部函数-从FIFO中获取数据帧
-  * @retval None
-  */
-void Motor_Cmd_TxCallback(Struct_CAN_Rx_Buffer *Rx_Buffer)
-{
-    // 暂时未处理电调发送过来的反馈信息
-   uint8_t *Rx_Data = Rx_Buffer->Data;
-    switch (Rx_Buffer->Header.StdId)
-    {
-    case (0x11):
-    {
-      // dm4310_fbdata(&motor[Motor1], Rx_Data);
-      imu_can_count++;
-      imu_last_type = Rx_Data[0];
-      imu_last_id = Rx_Buffer->Header.StdId;
-
-      HAL_GPIO_TogglePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin);
-      IMU_UpdateData(Rx_Data);
-    } break;
-    }
+ * @brief  滤波器在CAN总线上获取到目标ID触发中断
+ * @param  hcan CAN编号
+ * @param  header  Rx接收头
+ * @param  HAL_CAN_GetRxMessage HAL库内部函数-从FIFO中获取数据帧
+ * @retval None
+ */
+void Motor_Cmd_TxCallback(Struct_CAN_Rx_Buffer *Rx_Buffer) {
+  // 暂时未处理电调发送过来的反馈信息
+  uint8_t *Rx_Data = Rx_Buffer->Data;
+  uint32_t id = Rx_Buffer->Header.StdId;
+  switch (id) {
+  case (0x23): {
+    IMU_UpdateData(Rx_Data);
+  } break;
+  default:
+    break;
+  }
 }
 
 void UART8_Send_To_Plotter_DMA(uint8_t *data, uint16_t len) {
@@ -228,11 +216,16 @@ int main(void)
   // Plotter_Init(&my_plotter, rx_buffer, 0xAA, UART8_Send_To_Plotter_DMA);
   
   // ctrl_enable(Motor1_Status_ENABLED);
-  
-  CAN_Filter_Mask_Config(&hcan1, CAN_FILTER(13) | CAN_FIFO_1 | CAN_STDID | CAN_DATA_TYPE, 0, 0);
+  CAN_Filter_Mask_Config(
+      &hcan1, CAN_FILTER(13) | CAN_FIFO_1 | CAN_STDID | CAN_DATA_TYPE, 0, 0);
   CAN_Init(&hcan1, Motor_Cmd_TxCallback);
-  
-  
+  VOFA_Init();
+
+  imu_init(0x22, 0x23, &hcan1);
+
+  // imu_change_to_active();       
+  // imu_save_parameters();        
+
   // imu_change_to_active();
   /* 创建并启动电机控制线程 (优先级 15) */
   // rt_thread_t motor_tid = rt_thread_create("motor", motor_thread_entry, RT_NULL, 1024, 15, 10);
@@ -284,25 +277,15 @@ int main(void)
     //         dt
     //     );
     // HAL_Delay(10);
-    // vofa_packet.f_data[0] = imu.rol;
-    // vofa_packet.f_data[1] = imu.pit;
-    // vofa_packet.f_data[2] = imu.yaw;
-    // // vofa_packet.byte_data[12] = 0x00;
-    // // vofa_packet.byte_data[13] = 0x00;
-    // // vofa_packet.byte_data[14] = 0x80;
-    // // vofa_packet.byte_data[15] = 0x7F;
+    if (huart8.gState == HAL_UART_STATE_READY)
+{
+    vofa_packet.f_data[0] = imu.roll;
+    vofa_packet.f_data[1] = imu.pitch;
+    vofa_packet.f_data[2] = imu.yaw;
+    HAL_UART_Transmit_DMA(&huart8, vofa_packet.byte_data, 16);
+}
+HAL_Delay(20);
 
-    // HAL_UART_Transmit_DMA(&huart8, vofa_packet.byte_data, 16);
-imu_init(0x01, 0x11, &hcan1);
-  imu_change_to_active();
-
-    char msg[64];
-int len = snprintf(msg, sizeof(msg), "cnt=%lu id=%03lX type=%u\r\n",
-                   (unsigned long)imu_can_count,
-                   (unsigned long)imu_last_id,
-                   (unsigned int)imu_last_type);
-HAL_UART_Transmit(&huart8, (uint8_t *)msg, len, 100);
-HAL_Delay(200);
 
   }
   /* USER CODE END 3 */
