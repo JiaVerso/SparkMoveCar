@@ -217,11 +217,11 @@ int main(void)
   
   // ctrl_enable(Motor1_Status_ENABLED);
   CAN_Filter_Mask_Config(
-      &hcan1, CAN_FILTER(13) | CAN_FIFO_1 | CAN_STDID | CAN_DATA_TYPE, 0, 0);
-  CAN_Init(&hcan1, Motor_Cmd_TxCallback);
+      &hcan2, CAN_FILTER(27) | CAN_FIFO_1 | CAN_STDID | CAN_DATA_TYPE, 0, 0);
+  CAN_Init(&hcan2, Motor_Cmd_TxCallback);
   VOFA_Init();
 
-  imu_init(0x22, 0x23, &hcan1);
+  imu_init(0x22, 0x23, &hcan2);
 
   // imu_change_to_active();       
   // imu_save_parameters();        
