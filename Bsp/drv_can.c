@@ -90,10 +90,10 @@ void CAN_Filter_Mask_Config(CAN_HandleTypeDef *hcan, uint8_t Object_Para, uint32
 
     // 看第1位ID, 判断是标准帧还是扩展帧
     // 扩展帧暂不处理
-    if ((Object_Para & 0x02) >> 1)
-    {
-        return;
-    }
+    // if ((Object_Para & 0x02) >> 1)
+    // {
+    //     return;
+    // }
 
     // 标准帧
 
@@ -149,6 +149,28 @@ uint8_t CAN_Send_Data(CAN_HandleTypeDef *hcan, uint16_t ID, uint8_t *Data, uint1
 
     return (HAL_CAN_AddTxMessage(hcan, &tx_header, Data, &used_mailbox));
 }
+
+/**
+  * @brief  新增拓展帧发送函数（适配VESC开源电调）
+  * @param  hcan can接口
+  * @param  Object_Para  
+  * @retval None
+  */
+// uint8_t CAN_Send_Ext_Data(CAN_HandleTypeDef *hcan, uint32_t ID, uint8_t *Data, uint8_t Length)
+// {
+//     CAN_TxHeaderTypeDef tx_header = {0};
+
+//     //检测传参是否正确
+//     assert_param(hcan != NULL);
+
+//     tx_header.StdId = 0;
+//     tx_header.ExtId = ID;
+//     tx_header.IDE = CAN_ID_EXT;
+//     tx_header.RTR = CAN_RTR_DATA;
+//     tx_header.DLC = Length;
+
+// }
+
 
 /**
  * @brief CAN的TIM定时器中断发送回调函数

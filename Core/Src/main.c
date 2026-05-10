@@ -46,6 +46,7 @@
 #include "drv_imu.h"
 #include "QuaternionEKF.h" 
 #include "dev_dm_imu.h"
+#include "dev_n630.h"
 
 /* USER CODE END Includes */
 
@@ -126,9 +127,15 @@ void Serialplot_Call_Back(uint8_t *Buffer, uint16_t Length)
 void Motor_Cmd_TxCallback(Struct_CAN_Rx_Buffer *Rx_Buffer) {
   // 暂时未处理电调发送过来的反馈信息
   uint8_t *Rx_Data = Rx_Buffer->Data;
-  uint32_t id = Rx_Buffer->Header.StdId;
+  uint32_t id;
+  if (Rx_Buffer->Header.IDE == 0) {
+      id = Rx_Buffer->Header.StdId;
+  } else {
+    id = Rx_Buffer->Header.ExtId;
+    } 
+
   switch (id) {
-  case (0x23): {
+  case (4): {
     IMU_UpdateData(Rx_Data);
   } break;
   default:
@@ -277,13 +284,10 @@ int main(void)
     //         dt
     //     );
     // HAL_Delay(10);
-    if (huart8.gState == HAL_UART_STATE_READY)
-{
-    vofa_packet.f_data[0] = imu.roll;
-    vofa_packet.f_data[1] = imu.pitch;
-    vofa_packet.f_data[2] = imu.yaw;
-    HAL_UART_Transmit_DMA(&huart8, vofa_packet.byte_data, 16);
-}
+
+    comm_can_set_current(4, 0.2);
+
+
 HAL_Delay(20);
 
 
