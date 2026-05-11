@@ -90,10 +90,10 @@ void CAN_Filter_Mask_Config(CAN_HandleTypeDef *hcan, uint8_t Object_Para, uint32
 
     // 看第1位ID, 判断是标准帧还是扩展帧
     // 扩展帧暂不处理
-    // if ((Object_Para & 0x02) >> 1)
-    // {
-    //     return;
-    // }
+    if ((Object_Para & 0x02) >> 1)
+    {
+        return;
+    }
 
     // 标准帧
 
@@ -128,6 +128,41 @@ void CAN_Filter_Mask_Config(CAN_HandleTypeDef *hcan, uint8_t Object_Para, uint32
 }
 
 /**
+  * @brief  拓展帧
+  * @param  hcan can接口
+  * @param  Object_Para  
+                      （CAN_HandleTypeDef *hcan, 
+                            uint8_t FilterBank, 
+                            uint8_t FIFO_Num, 
+                            uint8_t is_ExtID, 
+                            uint8_t is_Remote, 
+                            uint32_t ID, 
+                            uint32_t Mask_ID）
+  * @retval None
+  */
+void CAN_Filter_Ext_Mask_Config(CAN_HandleTypeDef *hcan, uint8_t filter_bank, uint32_t ext_id, uint32_t mask_id, uint32_t fifo)
+{
+    CAN_FilterTypeDef can_filter = {0};
+
+    can_filter.FilterBank = filter_bank;
+    can_filter.FilterMode = CAN_FILTERMODE_IDMASK;
+    can_filter.FilterScale = CAN_FILTERSCALE_32BIT;
+    can_filter.FilterFIFOAssignment = fifo;
+    can_filter.FilterActivation = ENABLE;
+    can_filter.SlaveStartFilterBank = 14;
+    
+    // 扩展帧的ID是29bit, 按规定放在高32bit中的[28:3]位, 低3位保留
+    can_filter.FilterIdHigh = (uint16_t)(ext_id >> 13);
+    can_filter.FilterIdLow = (uint16_t)((ext_id << 3) | CAN_ID_EXT);
+
+    can_filter.FilterMaskIdHigh = (uint16_t)(mask_id >> 13);
+    can_filter.FilterMaskIdLow = (uint16_t)((mask_id << 3) | CAN_ID_EXT);
+
+    HAL_CAN_ConfigFilter(hcan, &can_filter);
+}
+
+
+/**
   * @brief  配置CAN BUS上的一些基本选项（canid，mask，滤波器，标准帧等等）
   * @param  hcan can接口
   * @param  Object_Para  
@@ -156,20 +191,22 @@ uint8_t CAN_Send_Data(CAN_HandleTypeDef *hcan, uint16_t ID, uint8_t *Data, uint1
   * @param  Object_Para  
   * @retval None
   */
-// uint8_t CAN_Send_Ext_Data(CAN_HandleTypeDef *hcan, uint32_t ID, uint8_t *Data, uint8_t Length)
-// {
-//     CAN_TxHeaderTypeDef tx_header = {0};
+uint8_t CAN_Send_Ext_Data(CAN_HandleTypeDef *hcan, uint32_t ID, uint8_t *Data, uint8_t Length)
+{
+    CAN_TxHeaderTypeDef tx_header = {0};
+    uint32_t used_mailbox;
 
-//     //检测传参是否正确
-//     assert_param(hcan != NULL);
+    //检测传参是否正确
+    assert_param(hcan != NULL);
 
-//     tx_header.StdId = 0;
-//     tx_header.ExtId = ID;
-//     tx_header.IDE = CAN_ID_EXT;
-//     tx_header.RTR = CAN_RTR_DATA;
-//     tx_header.DLC = Length;
+    tx_header.StdId = 0;
+    tx_header.ExtId = ID;
+    tx_header.IDE = CAN_ID_EXT;
+    tx_header.RTR = CAN_RTR_DATA;
+    tx_header.DLC = Length;
 
-// }
+    return HAL_CAN_AddTxMessage(hcan, &tx_header, Data, &used_mailbox);
+}
 
 
 /**

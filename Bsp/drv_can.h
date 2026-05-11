@@ -88,8 +88,11 @@ extern uint8_t CAN1_0x220_Tx_Data[];
 void CAN_Init(CAN_HandleTypeDef *hcan, CAN_Call_Back Callback_Function);
 
 void CAN_Filter_Mask_Config(CAN_HandleTypeDef *hcan, uint8_t Object_Para, uint32_t ID, uint32_t Mask_ID);
+void CAN_Filter_Ext_Mask_Config(CAN_HandleTypeDef *hcan, uint8_t filter_bank, uint32_t ext_id, uint32_t mask_id, uint32_t fifo);
+
 
 uint8_t CAN_Send_Data(CAN_HandleTypeDef *hcan, uint16_t ID, uint8_t *Data, uint16_t Length);
+uint8_t CAN_Send_Ext_Data(CAN_HandleTypeDef *hcan, uint32_t ID, uint8_t *Data, uint8_t Length);
 
 void TIM_CAN_PeriodElapsedCallback();
 

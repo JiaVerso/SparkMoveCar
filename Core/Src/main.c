@@ -83,6 +83,7 @@ SerialPlotter_t my_plotter;
 Motor_t motor_ID1;
 PID_t  pid_speed;     // 速度环
 extern dm_motor_t motor[Motor_Max];
+N630_Motor_t n630_motor[30] = {0};
 
 int8_t gyro_map[3]  = {1, 2, 3};
 int8_t accel_map[3] = {1, 2, 3};
@@ -128,19 +129,15 @@ void Motor_Cmd_TxCallback(Struct_CAN_Rx_Buffer *Rx_Buffer) {
   // 暂时未处理电调发送过来的反馈信息
   uint8_t *Rx_Data = Rx_Buffer->Data;
   uint32_t id;
+
   if (Rx_Buffer->Header.IDE == 0) {
       id = Rx_Buffer->Header.StdId;
   } else {
     id = Rx_Buffer->Header.ExtId;
+    Motor_UpdateData(id, Rx_Data);
+
     } 
 
-  switch (id) {
-  case (4): {
-    IMU_UpdateData(Rx_Data);
-  } break;
-  default:
-    break;
-  }
 }
 
 void UART8_Send_To_Plotter_DMA(uint8_t *data, uint16_t len) {
@@ -223,12 +220,14 @@ int main(void)
   // Plotter_Init(&my_plotter, rx_buffer, 0xAA, UART8_Send_To_Plotter_DMA);
   
   // ctrl_enable(Motor1_Status_ENABLED);
-  CAN_Filter_Mask_Config(
-      &hcan2, CAN_FILTER(27) | CAN_FIFO_1 | CAN_STDID | CAN_DATA_TYPE, 0, 0);
-  CAN_Init(&hcan2, Motor_Cmd_TxCallback);
-  VOFA_Init();
+  // CAN_Filter_Mask_Config(&hcan1, CAN_FILTER(13) | CAN_FIFO_1 | CAN_STDID | CAN_DATA_TYPE, 0, 0);
+      
+  CAN_Filter_Ext_Mask_Config(&hcan1, 13, 21, 0, CAN_FILTER_FIFO1);
 
-  imu_init(0x22, 0x23, &hcan2);
+  CAN_Init(&hcan1, Motor_Cmd_TxCallback);
+  // VOFA_Init();
+
+  // imu_init(0x22, 0x23, &hcan1);
 
   // imu_change_to_active();       
   // imu_save_parameters();        
@@ -285,10 +284,12 @@ int main(void)
     //     );
     // HAL_Delay(10);
 
-    comm_can_set_current(4, 0.2);
+   
+    // float rpm = n630_motor[21].rpm;
+    // HAL_UART_Transmit_DMA(&huart8, (const uint8_t *)&rpm, sizeof(float));
+    comm_can_set_rpm(21, 5000.0f);
 
-
-HAL_Delay(20);
+    HAL_Delay(20);
 
 
   }
