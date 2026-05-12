@@ -33,7 +33,7 @@ void Test_Motor_Sweep(void)
     int16_t current = 0;
     
     // 正转加速
-    while (current < 4000) {
+    while (current < 2000) {
         current += 10;
         CAN1_0x200_Tx_Data[2] = current >> 8;
         CAN1_0x200_Tx_Data[3] = current;
@@ -42,7 +42,7 @@ void Test_Motor_Sweep(void)
     }
     
     // 反转减速到反向加速
-    while (current > -4000) {
+    while (current > -2000) {
         current -= 10;
         CAN1_0x200_Tx_Data[2] = current >> 8;
         CAN1_0x200_Tx_Data[3] = current;

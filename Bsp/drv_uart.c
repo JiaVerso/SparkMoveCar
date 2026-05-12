@@ -110,6 +110,7 @@ void Uart_Init(UART_HandleTypeDef *huart, uint8_t *Rx_Buffer, uint16_t Rx_Buffer
         UART8_Manage_Object.UART_Handler = huart;
         UART8_Manage_Object.Callback_Function = Callback_Function;
     }
+    // HAL_UARTEx_ReceiveToIdle_DMA(huart, Rx_Buffer, Rx_Buffer_Size);
     HAL_UARTEx_ReceiveToIdle_DMA(huart, Rx_Buffer, Rx_Buffer_Size);
 }
 
@@ -191,7 +192,7 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
     //选择回调函数
     if (huart->Instance == USART1)
     {
-        UART1_Manage_Object.Callback_Function(UART1_Manage_Object.Rx_Buffer, UART1_Manage_Object.Rx_Buffer_Size);
+        UART1_Manage_Object.Callback_Function(UART1_Manage_Object.Rx_Buffer, Size);
         HAL_UARTEx_ReceiveToIdle_DMA(huart, UART1_Manage_Object.Rx_Buffer, UART1_Manage_Object.Rx_Buffer_Size);
     }
     else if (huart->Instance == USART2)

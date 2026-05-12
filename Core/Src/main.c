@@ -21,7 +21,6 @@
 #include "can.h"
 #include "dma.h"
 #include "spi.h"
-#include "stm32f4xx_hal.h"
 #include "usart.h"
 #include "gpio.h"
 
@@ -33,6 +32,7 @@
 #include <string.h>
 #include <math.h>
 
+#include "usart.h"
 #include "drv_can.h"
 #include "drv_bsp.h"
 #include "drv_uart.h"
@@ -47,6 +47,7 @@
 #include "QuaternionEKF.h" 
 #include "dev_dm_imu.h"
 #include "dev_n630.h"
+#include "bsp_sbus.h"
 
 /* USER CODE END Includes */
 
@@ -95,6 +96,7 @@ typedef union {
 
 VOFA_JustFloat_t vofa_packet;
 extern imu_t imu;
+extern uint8_t sbus_dma_buf[25];
 
 void VOFA_Init(void) {
     vofa_packet.byte_data[12] = 0x00;
@@ -114,7 +116,18 @@ void UART8_Trigger_Tx_DMA(void)
 
 void Serialplot_Call_Back(uint8_t *Buffer, uint16_t Length)
 {
-    App_Test_Parse_Command(Buffer, Length);
+    for (uint16_t i = 0; i < Length; i++)
+    {
+        SBUS_Receive(Buffer[i]);
+    }
+
+    SBUS_Handle();
+}
+
+
+void Serialplot8_Call_Back(uint8_t *Buffer, uint16_t Length)
+{
+    // App_Test_Parse_Command(Buffer, Length);
 }
 
  /* ---------------------------------------CAN Callback Configuration--------------------------------------------------------*/
@@ -202,27 +215,32 @@ int main(void)
   MX_CAN1_Init();
   MX_CAN2_Init();
   MX_SPI5_Init();
+  MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
 
   BSP_Init(BSP_DC_LU_ON | BSP_DC_LD_ON | BSP_DC_RU_ON | BSP_DC_RD_ON | BSP_LED_RED_ON, 0, 0);
   
-  Uart_Init(&huart8, rx_buffer, 128, Serialplot_Call_Back);
+  Uart_Init(&huart1, sbus_dma_buf, 25, Serialplot_Call_Back);
+  Uart_Init(&huart8, rx_buffer, RX_BUF_SIZE, Serialplot_Call_Back);
+
   // PID_Init(&pid_speed, 0.0f, 0.0f, 0.0f, 0.0f,2500.0f, 2500.0f);
 
   // dm4310_motor_init(&hcan1, &motor[Motor1], MOTOR_LEFT_CANID, POS_MODE);
-  // // DM-BMI088初始化
 
   // uart_rx_fifo = fifo_s_create(2048);
   // HAL_UARTEx_ReceiveToIdle_DMA(&huart8, USART8_Rx_buf, RX_BUF_SIZE);
 
-  // Motor_Init(&motor_ID1, 0x202, 0x200);
-  // MotorManager_Register(&motor_ID1);
+  Motor_Init(&motor_ID1, 0x202, 0x200);
+  MotorManager_Register(&motor_ID1);
   // Plotter_Init(&my_plotter, rx_buffer, 0xAA, UART8_Send_To_Plotter_DMA);
   
   // ctrl_enable(Motor1_Status_ENABLED);
-  // CAN_Filter_Mask_Config(&hcan1, CAN_FILTER(13) | CAN_FIFO_1 | CAN_STDID | CAN_DATA_TYPE, 0, 0);
+  CAN_Filter_Mask_Config(&hcan1, CAN_FILTER(13) | CAN_FIFO_1 | CAN_STDID | CAN_DATA_TYPE, 0, 0);
       
+
   CAN_Filter_Ext_Mask_Config(&hcan1, 13, 21, 0, CAN_FILTER_FIFO1);
+  // CAN_Filter_Ext_Mask_Config(&hcan1, 13, 25, 0, CAN_FILTER_FIFO1);
+  CAN_Filter_Ext_Mask_Config(&hcan1, 13, 24, 0, CAN_FILTER_FIFO1);
 
   CAN_Init(&hcan1, Motor_Cmd_TxCallback);
   // VOFA_Init();
@@ -287,10 +305,10 @@ int main(void)
    
     // float rpm = n630_motor[21].rpm;
     // HAL_UART_Transmit_DMA(&huart8, (const uint8_t *)&rpm, sizeof(float));
-    comm_can_set_rpm(21, 5000.0f);
-
-    HAL_Delay(20);
-
+    // comm_can_set_rpm(21, 8000.0f);
+    // comm_can_set_rpm(22, 8000.0f);
+    // comm_can_set_rpm(25, 8000.0f);
+    // comm_can_set_rpm(24, 8000.0f);
 
   }
   /* USER CODE END 3 */
@@ -404,4 +422,3 @@ void assert_failed(uint8_t *file, uint32_t line)
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
-
