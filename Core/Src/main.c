@@ -48,7 +48,7 @@
 #include "dev_dm_imu.h"
 #include "dev_n630.h"
 #include "bsp_sbus.h"
-#include "drive_motor.h"
+#include "chassis.h"
 
 /* USER CODE END Includes */
 
@@ -140,7 +140,7 @@ void Serialplot8_Call_Back(uint8_t *Buffer, uint16_t Length)
  * @retval None
  */
 void Motor_Cmd_TxCallback(Struct_CAN_Rx_Buffer *Rx_Buffer) {
-  DriveMotor_CANRxDispatch(Rx_Buffer);
+  ChassisMotor_CANRxDispatch(Rx_Buffer);
 }
 
 void UART8_Send_To_Plotter_DMA(uint8_t *data, uint16_t len) {
@@ -220,16 +220,16 @@ int main(void)
   // uart_rx_fifo = fifo_s_create(2048);
   // HAL_UARTEx_ReceiveToIdle_DMA(&huart8, USART8_Rx_buf, RX_BUF_SIZE);
 
-  DriveMotor_InitAll();
   // Plotter_Init(&my_plotter, rx_buffer, 0xAA, UART8_Send_To_Plotter_DMA);
   
   // ctrl_enable(Motor1_Status_ENABLED);
-  CAN_Filter_Mask_Config(&hcan1, CAN_FILTER(0) | CAN_FIFO_0 | CAN_STDID | CAN_DATA_TYPE, 0, 0);
+  CAN_Filter_Mask_Config(&hcan1, CAN_FILTER(13) | CAN_FIFO_0 | CAN_STDID | CAN_DATA_TYPE, 0, 0);
       
-  CAN_Filter_Ext_Mask_Config(&hcan1, 1, 0, 0, CAN_FILTER_FIFO1);
+  CAN_Filter_Ext_Mask_Config(&hcan1, 13, 0, 0, CAN_FILTER_FIFO1);
 
-  CAN_Init(&hcan1, Motor_Cmd_TxCallback);
   // VOFA_Init();
+  ChassisMotor_InitAll();
+  CAN_Init(&hcan1, Motor_Cmd_TxCallback);
 
   // imu_init(0x22, 0x23, &hcan1);
 
@@ -295,7 +295,7 @@ int main(void)
     // comm_can_set_rpm(22, 8000.0f);
     // comm_can_set_rpm(25, 8000.0f);
     // comm_can_set_rpm(24, 8000.0f);
-    DriveMotor_ControlLoop();
+     ChassisMotor_ControlLoop();
     HAL_Delay(10);
 
   }

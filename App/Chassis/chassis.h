@@ -31,23 +31,23 @@ extern "C" {
 
 // 遥控输入通道数量  Number of remote control input channels
 #define CHASSIS_SBUS_CH_COUNT 8U
-#define CHASSIS_SBUS_VX_CH    1U
-#define CHASSIS_SBUS_WZ_CH    2U
+#define CHASSIS_SBUS_VX_CH    0U
+#define CHASSIS_SBUS_WZ_CH    1U
 
 // SBUS输入的最小值、中心值、最大值和死区  Minimum, center, maximum, and deadband for remote control input
 #define CHASSIS_SBUS_MIN      300U
 #define CHASSIS_SBUS_CENTER   1000U
 #define CHASSIS_SBUS_MAX      1700U
-#define CHASSIS_SBUS_DEADBAND 0.06f
+#define CHASSIS_SBUS_DEADBAND 0.10f
 
 // 底盘最大速度限制  Maximum speed limits for the chassis
-#define CHASSIS_MAX_VX_MPS      0.5f
+#define CHASSIS_MAX_VX_MPS      0.3f
 #define CHASSIS_MAX_WZ_RADPS    1.0f
 
-// 轮子直径 Wheel diameter
-#define CHASSIS_WHEEL_DIAMETER_M 0.20f
-// 轮距 Track width
-#define CHASSIS_TRACK_WIDTH_M    0.40f
+// 轮子直径 Wheel diameter 6inch = 0.1524m
+#define CHASSIS_WHEEL_DIAMETER_M 0.1524f
+// 轮距，左右轮中心之间的距离 Track width, the distance between the centers of the left and right wheels
+#define CHASSIS_TRACK_WIDTH_M    0.48f
 
 #define CHASSIS_VESC_POLE_PAIRS  7.0f
 // VESC的减速比，电机转速 / 轮子转速  The gear ratio for VESC, motor speed / wheel speed
@@ -107,7 +107,6 @@ typedef struct {
     float pid_kf;
     float pid_max_integral;
 
-    // 仅C620电机使用的成员，仅在type为CHASSIS_MOTOR_TYPE_C620时有效  Members used only for C620 motors, valid only when type is CHASSIS_MOTOR_TYPE_C620
     Motor_t c620_motor;
     PID_t speed_pid;
 

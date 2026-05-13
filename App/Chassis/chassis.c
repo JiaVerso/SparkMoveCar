@@ -33,8 +33,8 @@ static float ChassisMotor_NormalizeChannel(uint16_t channel)
 {
     float value;
 
-    if (channel >= CHASSIS_SBUS_CH_COUNT) {
-        value = (float)(channel - CHASSIS_SBUS_CENTER) /
+    if (channel >= CHASSIS_SBUS_CENTER) {
+        value = (float)(channel - CHASSIS_SBUS_CENTER) /    
                 (float)(CHASSIS_SBUS_MAX - CHASSIS_SBUS_CENTER);
     } else {
         value = -((float)(CHASSIS_SBUS_CENTER - channel) /
@@ -48,6 +48,7 @@ static float ChassisMotor_NormalizeChannel(uint16_t channel)
     return value;
 }
 
+// 根据轮子枚举查找对应的电机控制结构体指针  Find the corresponding motor control structure pointer based on the wheel enumeration
 static ChassisMotor_t *ChassisMotor_FindByWheel(ChassisWheel_e wheel)
 {
     for (uint32_t i = 0; i < CHASSIS_MOTOR_COUNT; i++) {
@@ -58,23 +59,41 @@ static ChassisMotor_t *ChassisMotor_FindByWheel(ChassisWheel_e wheel)
     return NULL;
 }
 
+// 根据CAN ID查找对应的C620电机控制结构体指针  Find the corresponding C620 motor control structure pointer based on the CAN ID
 static ChassisMotor_t *ChassisMotor_FindC620ByStdId(uint32_t std_id)
 {
     for (uint32_t i = 0; i < CHASSIS_MOTOR_COUNT; i++) {
-        if (ChassisMotor_Table[i].type == CHASSIS_MOTOR_TYPE_C620 &&
-            ChassisMotor_Table[i].c620_rx_id == std_id) {
+        if (ChassisMotor_Table[i].type == CHASSIS_MOTOR_TYPE_C620) {
             return &ChassisMotor_Table[i];
         }
     }
     return NULL;
 }
 
+// 根据CAN ID查找对应的VESC电机控制结构体指针  Find the corresponding C620 motor control structure pointer based on the CAN ID
+static ChassisMotor_t *ChassisMotor_FindVescByExtId(uint32_t ext_id)
+{
+    uint8_t vesc_id = ext_id & 0xFF;
+
+    for (uint32_t i = 0; i < CHASSIS_MOTOR_COUNT; i++) {
+        if (ChassisMotor_Table[i].type == CHASSIS_MOTOR_TYPE_VESC &&
+            ChassisMotor_Table[i].vesc_id == vesc_id) {
+            return &ChassisMotor_Table[i];
+        }
+    }
+
+    return NULL;
+}
+
 ChassisMotor_t ChassisMotor_Table[CHASSIS_MOTOR_COUNT] = {
+    // 左前轮参数设置  Parameters for left front wheel
     {
         .wheel = CHASSIS_WHEEL_LF,
         .type = CHASSIS_MOTOR_TYPE_VESC,
         .hcan = &hcan1,
         .vesc_id = 21,
+
+        // 将电机反馈的转速转换成轮子转速的比例系数  The ratio coefficient to convert the motor feedback speed into wheel speed
         .feedback_to_wheel_rpm = 1.0f / (CHASSIS_VESC_POLE_PAIRS * CHASSIS_VESC_GEAR_RATIO),
         .command_direction = 1.0f,
         .current_limit = CHASSIS_VESC_CURRENT_LIMIT_A,
@@ -130,6 +149,7 @@ ChassisMotor_t ChassisMotor_Table[CHASSIS_MOTOR_COUNT] = {
     },
 };
 
+// 初始化所有电机的PID参数和状态  Initialize PID parameters and state for all motors
 void ChassisMotor_InitAll(void)
 {
     for (uint32_t i = 0; i < CHASSIS_MOTOR_COUNT; i++) {
@@ -153,6 +173,7 @@ void ChassisMotor_InitAll(void)
     }
 }
 
+// CAN 回调处理函数，根据收发到的帧类型去执行对应的处理逻辑  CAN callback handler function, execute corresponding processing logic based on the type of frame received
 void ChassisMotor_CANRxDispatch(Struct_CAN_Rx_Buffer *rx_buffer)
 {
     if (rx_buffer == NULL) {
@@ -163,13 +184,24 @@ void ChassisMotor_CANRxDispatch(Struct_CAN_Rx_Buffer *rx_buffer)
         ChassisMotor_t *motor = ChassisMotor_FindC620ByStdId(rx_buffer->Header.StdId);
         if (motor != NULL) {
             Motor_ParseRxData(&motor->c620_motor, rx_buffer->Data);
+
+            // 将电机反馈的转速转换成轮子转速  Convert the motor feedback speed into wheel speed
             motor->feedback_wheel_rpm = ChassisMotor_GetFeedbackRpm(motor->wheel);
         }
-    } else {
+    } 
+    else if (rx_buffer->Header.IDE == CAN_ID_EXT) {
+        // 
+        ChassisMotor_t *motor = ChassisMotor_FindVescByExtId(rx_buffer->Header.ExtId);
+        if(motor == NULL) {
+            return;
+        }
         Motor_UpdateData(rx_buffer->Header.ExtId, rx_buffer->Data);
+
+        motor->feedback_wheel_rpm = ChassisMotor_GetFeedbackRpm(motor->wheel);
     }
 }
 
+// 获取轮子反馈的转速  Get the feedback speed of the wheel
 float ChassisMotor_GetFeedbackRpm(ChassisWheel_e wheel)
 {
     ChassisMotor_t *motor = ChassisMotor_FindByWheel(wheel);
@@ -180,8 +212,10 @@ float ChassisMotor_GetFeedbackRpm(ChassisWheel_e wheel)
     }
 
     if (motor->type == CHASSIS_MOTOR_TYPE_VESC) {
+        // erpm 是电机转速乘以极对数，单位是 rpm * pole_pairs  erpm is the motor speed multiplied by the number of pole pairs, in units of rpm *
         raw_rpm = n630_motor[motor->vesc_id].rpm;
     } else {
+        // C620 的转速是无刷电机转速，单位是 rpm  The speed of the C620 is directly parsed from the data feedback by the ESC, in units of rpm
         raw_rpm = (float)motor->c620_motor.rx_speed;
     }
 
@@ -199,19 +233,22 @@ void ChassisMotor_SetWheelTargetRpm(ChassisWheel_e wheel, float wheel_rpm)
 
 void ChassisMotor_SetChassisSpeed(float vx_mps, float wz_radps)
 {
-    const float wheel_circumference_m = DRIVE_WHEEL_DIAMETER_M * DRIVE_PI;
-    const float left_mps = vx_mps - wz_radps * (DRIVE_TRACK_WIDTH_M * 0.5f);
-    const float right_mps = vx_mps + wz_radps * (DRIVE_TRACK_WIDTH_M * 0.5f);
-    const float left_rpm = left_mps * 60.0f / wheel_circumference_m;
-    const float right_rpm = right_mps * 60.0f / wheel_circumference_m;
+    const float wheel_circumference_m = CHASSIS_WHEEL_DIAMETER_M * DRIVE_PI;
+    const float left_mps = vx_mps - wz_radps * (CHASSIS_TRACK_WIDTH_M * 0.5f);
+    const float right_mps = vx_mps + wz_radps * (CHASSIS_TRACK_WIDTH_M * 0.5f);
 
-    ChassisMotor_SetWheelTargetRpm(CHASSIS_WHEEL_LF, left_rpm);
-    ChassisMotor_SetWheelTargetRpm(CHASSIS_WHEEL_LB, left_rpm);
-    ChassisMotor_SetWheelTargetRpm(CHASSIS_WHEEL_RF, right_rpm);
-    ChassisMotor_SetWheelTargetRpm(CHASSIS_WHEEL_RB, right_rpm);
+    // 将线速度转换成轮子转速 Convert linear speed to wheel speed
+    const float left_wheels_rpm = left_mps * 60.0f / wheel_circumference_m;
+    const float right_wheels_rpm = right_mps * 60.0f / wheel_circumference_m;
+
+    ChassisMotor_SetWheelTargetRpm(CHASSIS_WHEEL_LF, left_wheels_rpm);
+    ChassisMotor_SetWheelTargetRpm(CHASSIS_WHEEL_LB, left_wheels_rpm);
+    ChassisMotor_SetWheelTargetRpm(CHASSIS_WHEEL_RF, right_wheels_rpm);
+    ChassisMotor_SetWheelTargetRpm(CHASSIS_WHEEL_RB, right_wheels_rpm);
 }
 
-void ChassisMotor_UpdateFromSbusChannels(const uint16_t channels[CHASSIS_REMOTE_CH_COUNT])
+// 根据遥控器输入更新底盘速度命令 Update chassis speed commands based on remote control input
+void ChassisMotor_UpdateFromSbusChannels(const uint16_t channels[CHASSIS_SBUS_CH_COUNT])
 {
     float vx_cmd;
     float wz_cmd;
@@ -221,12 +258,13 @@ void ChassisMotor_UpdateFromSbusChannels(const uint16_t channels[CHASSIS_REMOTE_
         return;
     }
 
-    vx_cmd = ChassisMotor_NormalizeChannel(channels[CHASSIS_REMOTE_VX_CH]) * CHASSIS_MAX_VX_MPS;
-    wz_cmd = ChassisMotor_NormalizeChannel(channels[CHASSIS_REMOTE_WZ_CH]) * CHASSIS_MAX_WZ_RADPS;
+    vx_cmd = ChassisMotor_NormalizeChannel(channels[CHASSIS_SBUS_VX_CH]) * CHASSIS_MAX_VX_MPS;
+    wz_cmd = ChassisMotor_NormalizeChannel(channels[CHASSIS_SBUS_WZ_CH]) * CHASSIS_MAX_WZ_RADPS;
 
     ChassisMotor_SetChassisSpeed(vx_cmd, wz_cmd);
 }
 
+// 底盘控制周期函数，计算每个电机的当前命令并发送到底盘控制器  Chassis control loop function, calculate the current command for each motor and send it to the chassis controllers
 void ChassisMotor_ControlLoop(void)
 {
     for (uint32_t i = 0; i < CHASSIS_MOTOR_COUNT; i++) {
@@ -242,6 +280,7 @@ void ChassisMotor_ControlLoop(void)
     ChassisMotor_SendAllCurrent();
 }
 
+// 发送单个电机的当前命令到对应的CAN ID  Send current command for a single motor to its corresponding CAN ID
 void ChassisMotor_SendCurrent(ChassisMotor_t *motor)
 {
     int16_t c620_current;
@@ -266,6 +305,7 @@ void ChassisMotor_SendCurrent(ChassisMotor_t *motor)
     CAN_Send_Data(motor->hcan, (uint16_t)motor->c620_tx_id, data, 8);
 }
 
+// 发送所有电机的当前命令到对应的CAN ID  Send current commands for all motors to their corresponding CAN IDs
 void ChassisMotor_SendAllCurrent(void)
 {
     uint8_t can1_0x200_data[8] = {0};

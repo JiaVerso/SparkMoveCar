@@ -70,6 +70,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     Device/dev_dm_imu.c
     Device/N630/dev_n630.c
     Bsp/bsp_sbus.c
+    App/Chassis/chassis.c
 
     Drivers/CMSIS/DSP/Source/MatrixFunctions/arm_mat_init_f32.c
     Drivers/CMSIS/DSP/Source/MatrixFunctions/arm_mat_add_f32.c
@@ -91,6 +92,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     Modules/QuaternionEKF
     Drivers/CMSIS/DSP/Include
     Device/N630
+    App/Chassis
 )
 
 # Add project symbols (macros)

@@ -1,7 +1,7 @@
 #include "bsp_sbus.h"
 #include "string.h"
 #include "stdio.h"
-#include "driver_motor.h"
+#include "chassis.h"
 
 
 #define SBUS_RECV_MAX    25
@@ -128,19 +128,19 @@ void SBUS_Handle(void)
 			   g_sbus_channels[15]);
         #else
 
-        char msg[128];
+        // char msg[128];
         // 发送SBUS数据到串口，方便调试和监控  Send SBUS data to the serial port for debugging and monitoring
         // 这里是CH1~CH8的数据，便于调试添加命名
-        int len = snprintf(msg, sizeof(msg),
-                   "roll:%u pitch:%u thro:%u yaw:%u sw_c:%u roller:%u back_1:%u roller_2:%u\r\n",
-                   g_sbus_channels[0], g_sbus_channels[1],
-                   g_sbus_channels[2], g_sbus_channels[3],
-                   g_sbus_channels[4], g_sbus_channels[5],
-                   g_sbus_channels[6], g_sbus_channels[7]);
+        // int len = snprintf(msg, sizeof(msg),
+        //            "roll:%u pitch:%u thro:%u yaw:%u sw_c:%u roller:%u back_1:%u roller_2:%u\r\n",
+        //            g_sbus_channels[0], g_sbus_channels[1],
+        //            g_sbus_channels[2], g_sbus_channels[3],
+        //            g_sbus_channels[4], g_sbus_channels[5],
+        //            g_sbus_channels[6], g_sbus_channels[7]);
 
-        UART_Send_Data(&huart8, (uint8_t *)msg, len);
+        // UART_Send_Data(&huart8, (uint8_t *)msg, len);
         // 将SBUS协议转换成PWM，传递给电机控制函数  The SBUS protocol is converted to PWM and passed to the motor control function
-        DriveMotor_UpdateFromSbusChannels(g_sbus_channels);
+        ChassisMotor_UpdateFromSbusChannels(g_sbus_channels);
 
         #endif
     }
