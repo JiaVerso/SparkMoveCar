@@ -1,6 +1,7 @@
 #include "bsp_sbus.h"
 #include "string.h"
 #include "stdio.h"
+#include "driver_motor.h"
 
 
 #define SBUS_RECV_MAX    25
@@ -117,6 +118,7 @@ void SBUS_Handle(void)
         if (res) return;
 
         #if SBUS_ALL_CHANNELS
+        
         printf("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\r\n",
                g_sbus_channels[0], g_sbus_channels[1], g_sbus_channels[2],
 			   g_sbus_channels[3], g_sbus_channels[4], g_sbus_channels[5],
@@ -126,10 +128,6 @@ void SBUS_Handle(void)
 			   g_sbus_channels[15]);
         #else
 
-      //   printf("---%d,%d,%d,%d,%d,%d,%d,%d\r\n---",
-      //          g_sbus_channels[0], g_sbus_channels[1], g_sbus_channels[2],
-			   // g_sbus_channels[3], g_sbus_channels[4],g_sbus_channels[5],
-			   // g_sbus_channels[6], g_sbus_channels[7]);
         char msg[128];
         // 发送SBUS数据到串口，方便调试和监控  Send SBUS data to the serial port for debugging and monitoring
         // 这里是CH1~CH8的数据，便于调试添加命名
@@ -141,7 +139,8 @@ void SBUS_Handle(void)
                    g_sbus_channels[6], g_sbus_channels[7]);
 
         UART_Send_Data(&huart8, (uint8_t *)msg, len);
-
+        // 将SBUS协议转换成PWM，传递给电机控制函数  The SBUS protocol is converted to PWM and passed to the motor control function
+        DriveMotor_UpdateFromSbusChannels(g_sbus_channels);
 
         #endif
     }
@@ -153,7 +152,7 @@ void SBUS_Handle(void)
 //     if (g_sbus_channels[0] == 0 && g_sbus_channels[2] == 0) {
 //         move.vx = move.vy = move.vz = 0.0f;
 //         for (int i = 0 ; i<4 ;i++) {
-//             motor_speed_linera[i] = 0;
+//             motor_spee_dlinera[i] = 0;
 //         }
 //         return;
 //     }
