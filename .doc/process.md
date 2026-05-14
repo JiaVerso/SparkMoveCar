@@ -82,3 +82,4 @@ cubemx步骤：时钟，串口全局使能（异步通信），不然没发进�
  2. USART和uart区别:usart是通用同步/异步收发器.而uart是通用异步收发器.uasrt可以当普通uart使用,也可以是多一个时钟线clk来实现同步作用.
  3. snprintf函数：把格式化后的文本写进一个字符串缓冲区，并限制最大写入长度，防止数组越界，这样可以发文本格式
  4. 指针变量访问内部成员使用-> ， 数组变量访问内部成员使用 . 。 ChassisMotor_t *motor_ptr;(motor_ptr->c620_motor)  ChassisMotor_t motor;(motor.c620_motor)
+ 5. can1内部只有3个mailbox，当我同时发送四帧can帧数据，刚好前三帧把mailbox填满，如果第四帧调用mailbox时，前面三帧还没有发送完毕就会busy

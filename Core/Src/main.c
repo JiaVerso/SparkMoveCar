@@ -211,7 +211,7 @@ int main(void)
   BSP_Init(BSP_DC_LU_ON | BSP_DC_LD_ON | BSP_DC_RU_ON | BSP_DC_RD_ON | BSP_LED_RED_ON, 0, 0);
   
   Uart_Init(&huart1, sbus_dma_buf, 25, Serialplot_Call_Back);
-  Uart_Init(&huart8, rx_buffer, RX_BUF_SIZE, Serialplot_Call_Back);
+  Uart_Init(&huart8, rx_buffer, RX_BUF_SIZE, Serialplot8_Call_Back);
 
   // PID_Init(&pid_speed, 0.0f, 0.0f, 0.0f, 0.0f,2500.0f, 2500.0f);
 
@@ -223,9 +223,9 @@ int main(void)
   // Plotter_Init(&my_plotter, rx_buffer, 0xAA, UART8_Send_To_Plotter_DMA);
   
   // ctrl_enable(Motor1_Status_ENABLED);
-  CAN_Filter_Mask_Config(&hcan1, CAN_FILTER(13) | CAN_FIFO_0 | CAN_STDID | CAN_DATA_TYPE, 0, 0);
+  CAN_Filter_Mask_Config(&hcan1, CAN_FILTER(0) | CAN_FIFO_0 | CAN_STDID | CAN_DATA_TYPE, 0, 0);
       
-  CAN_Filter_Ext_Mask_Config(&hcan1, 13, 0, 0, CAN_FILTER_FIFO1);
+  CAN_Filter_Ext_Mask_Config(&hcan1, 1, 0, 0, CAN_FILTER_FIFO1);
 
   // VOFA_Init();
   ChassisMotor_InitAll();
@@ -295,9 +295,8 @@ int main(void)
     // comm_can_set_rpm(22, 8000.0f);
     // comm_can_set_rpm(25, 8000.0f);
     // comm_can_set_rpm(24, 8000.0f);
-     ChassisMotor_ControlLoop();
+    ChassisMotor_ControlLoop();
     HAL_Delay(10);
-
   }
   /* USER CODE END 3 */
 }

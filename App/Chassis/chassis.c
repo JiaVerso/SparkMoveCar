@@ -12,7 +12,10 @@
 #include "chassis.h"
 
 #include <stddef.h>
+#include <stdint.h>
 #include "dev_n630.h"
+#include "drv_can.h"
+#include "stm32f4xx_hal_can.h"
 
 #define DRIVE_PI 3.1415926f
 
@@ -63,7 +66,7 @@ static ChassisMotor_t *ChassisMotor_FindByWheel(ChassisWheel_e wheel)
 static ChassisMotor_t *ChassisMotor_FindC620ByStdId(uint32_t std_id)
 {
     for (uint32_t i = 0; i < CHASSIS_MOTOR_COUNT; i++) {
-        if (ChassisMotor_Table[i].type == CHASSIS_MOTOR_TYPE_C620) {
+        if (ChassisMotor_Table[i].type == CHASSIS_MOTOR_TYPE_C620 && ChassisMotor_Table[i].c620_rx_id == std_id) {
             return &ChassisMotor_Table[i];
         }
     }
@@ -95,9 +98,11 @@ ChassisMotor_t ChassisMotor_Table[CHASSIS_MOTOR_COUNT] = {
 
         // 将电机反馈的转速转换成轮子转速的比例系数  The ratio coefficient to convert the motor feedback speed into wheel speed
         .feedback_to_wheel_rpm = 1.0f / (CHASSIS_VESC_POLE_PAIRS * CHASSIS_VESC_GEAR_RATIO),
-        .command_direction = 1.0f,
+        .command_direction = -1.0f,
         .current_limit = CHASSIS_VESC_CURRENT_LIMIT_A,
-        .pid_kp = 0.02f,
+          
+        // VESC PID output uint: ampere(A)
+        .pid_kp = 0.06f,
         .pid_ki = 0.001f,
         .pid_kd = 0.0f,
         .pid_kf = 0.0f,
@@ -111,7 +116,9 @@ ChassisMotor_t ChassisMotor_Table[CHASSIS_MOTOR_COUNT] = {
         .feedback_to_wheel_rpm = 1.0f / (CHASSIS_VESC_POLE_PAIRS * CHASSIS_VESC_GEAR_RATIO),
         .command_direction = 1.0f,
         .current_limit = CHASSIS_VESC_CURRENT_LIMIT_A,
-        .pid_kp = 0.02f,
+          
+        // VESC PID output uint: ampere(A)
+        .pid_kp = 0.04f,
         .pid_ki = 0.001f,
         .pid_kd = 0.0f,
         .pid_kf = 0.0f,
@@ -123,9 +130,11 @@ ChassisMotor_t ChassisMotor_Table[CHASSIS_MOTOR_COUNT] = {
         .hcan = &hcan1,
         .vesc_id = 24,
         .feedback_to_wheel_rpm = 1.0f / (CHASSIS_VESC_POLE_PAIRS * CHASSIS_VESC_GEAR_RATIO),
-        .command_direction = 1.0f,
+        .command_direction = -1.0f,
         .current_limit = CHASSIS_VESC_CURRENT_LIMIT_A,
-        .pid_kp = 0.02f,
+
+        // VESC PID output uint: ampere(A)
+        .pid_kp = 0.04f,
         .pid_ki = 0.001f,
         .pid_kd = 0.0f,
         .pid_kf = 0.0f,
@@ -141,7 +150,8 @@ ChassisMotor_t ChassisMotor_Table[CHASSIS_MOTOR_COUNT] = {
         .feedback_to_wheel_rpm = 1.0f / CHASSIS_C620_GEAR_RATIO,
         .command_direction = 1.0f,
         .current_limit = CHASSIS_C620_CURRENT_LIMIT,
-        .pid_kp = 4.0f,
+        // C620 PID output unit: DJI current command raw value, in the range of [-65535, 65535], corresponding to [-max_current, max_current]
+        .pid_kp = 40.0f,
         .pid_ki = 0.02f,
         .pid_kd = 0.0f,
         .pid_kf = 0.0f,
@@ -264,20 +274,46 @@ void ChassisMotor_UpdateFromSbusChannels(const uint16_t channels[CHASSIS_SBUS_CH
     ChassisMotor_SetChassisSpeed(vx_cmd, wz_cmd);
 }
 
-// 底盘控制周期函数，计算每个电机的当前命令并发送到底盘控制器  Chassis control loop function, calculate the current command for each motor and send it to the chassis controllers
-void ChassisMotor_ControlLoop(void)
-{
-    for (uint32_t i = 0; i < CHASSIS_MOTOR_COUNT; i++) {
-        ChassisMotor_t *motor = &ChassisMotor_Table[i];
+static uint8_t ChassisMotor_Stop(ChassisMotor_t *motor) {
 
-        motor->feedback_wheel_rpm = ChassisMotor_GetFeedbackRpm(motor->wheel);
-        motor->current_cmd = PID_Calculate(&motor->speed_pid,
-                                            motor->feedback_wheel_rpm,
-                                            motor->target_wheel_rpm);
-        motor->current_cmd = ChassisMotor_Clamp(motor->current_cmd, motor->current_limit);
+    if(motor == NULL) {
+        return 1U;
+    }
+    
+    if ( motor->target_wheel_rpm > -1.0f && motor->target_wheel_rpm < 1.0f) {
+        motor->target_wheel_rpm = 0.0f;
+        motor->current_cmd = 0.0f;
+
+        motor->speed_pid.error = 0.0f;
+        motor->speed_pid.prev_error = 0.0f;
+        motor->speed_pid.prev_target = 0.0f;
+        motor->speed_pid.integral = 0.0f;
+
+        return 1U;
+  }
+        return 0U;
+}
+
+// 底盘控制周期函数，计算每个电机的当前命令并发送到底盘控制器  Chassis control
+// loop function, calculate the current command for each motor and send it to
+// the chassis controllers
+void ChassisMotor_ControlLoop(void) {
+  for (uint32_t i = 0; i < CHASSIS_MOTOR_COUNT; i++) {
+    ChassisMotor_t *motor = &ChassisMotor_Table[i];
+    motor->feedback_wheel_rpm = ChassisMotor_GetFeedbackRpm(motor->wheel);
+
+     // 如果目标转速接近于零，则直接停止电机以避免积分累加 up  If the target speed is close to zero, stop the motor directly to avoid integral windup
+    if (ChassisMotor_Stop(motor)) {
+        continue;
     }
 
-    ChassisMotor_SendAllCurrent();
+    motor->current_cmd = PID_Calculate(
+        &motor->speed_pid, motor->feedback_wheel_rpm, motor->target_wheel_rpm);
+    motor->current_cmd =
+        ChassisMotor_Clamp(motor->current_cmd, motor->current_limit);
+  }
+
+    ChassisMotor_SendAllCurrent_Section();
 }
 
 // 发送单个电机的当前命令到对应的CAN ID  Send current command for a single motor to its corresponding CAN ID
@@ -291,6 +327,7 @@ void ChassisMotor_SendCurrent(ChassisMotor_t *motor)
         return;
     }
 
+    // VESC 电机直接通过专用函数发送电流命令，C620 电机需要打包成 CAN 数据帧发送  VESC motors send current commands directly through a dedicated function, while C620 motors need to be packed into CAN data frames for sending
     if (motor->type == CHASSIS_MOTOR_TYPE_VESC) {
         comm_can_set_current(motor->vesc_id,
                              motor->current_cmd * motor->command_direction);
@@ -305,41 +342,107 @@ void ChassisMotor_SendCurrent(ChassisMotor_t *motor)
     CAN_Send_Data(motor->hcan, (uint16_t)motor->c620_tx_id, data, 8);
 }
 
-// 发送所有电机的当前命令到对应的CAN ID  Send current commands for all motors to their corresponding CAN IDs
-void ChassisMotor_SendAllCurrent(void)
-{
-    uint8_t can1_0x200_data[8] = {0};
-    uint8_t can1_0x1ff_data[8] = {0};
-    uint8_t send_can1_0x200 = 0U;
-    uint8_t send_can1_0x1ff = 0U;
+// 发送所有电机的当前命令到对应的CAN ID  Send current commands for all motors to
+// their corresponding CAN IDs
+void ChassisMotor_SendAllCurrent(void) {
+  uint8_t can1_0x200_data[8] = {0};
+  uint8_t can1_0x1ff_data[8] = {0};
+  uint8_t send_can1_0x200 = 0U;
+  uint8_t send_can1_0x1ff = 0U;
 
-    for (uint32_t i = 0; i < CHASSIS_MOTOR_COUNT; i++) {
-        ChassisMotor_t *motor = &ChassisMotor_Table[i];
+  // 目前只适用于 4 个电机底盘，并且3个拓展帧，一个标准帧
+  for (uint32_t i = 0; i < CHASSIS_MOTOR_COUNT; i++) {
+    ChassisMotor_t *motor = &ChassisMotor_Table[i];
 
-        if (motor->type == CHASSIS_MOTOR_TYPE_VESC) {
-            ChassisMotor_SendCurrent(motor);
-            continue;
-        }
-
-        int16_t current = (int16_t)ChassisMotor_Clamp(motor->current_cmd * motor->command_direction,
-                                                    motor->current_limit);
-        uint8_t offset = (uint8_t)(motor->c620_tx_slot * 2U);
-        uint8_t *data = (motor->c620_tx_id == 0x1FFU) ? can1_0x1ff_data : can1_0x200_data;
-
-        data[offset] = (uint8_t)(current >> 8);
-        data[offset + 1U] = (uint8_t)current;
-
-        if (motor->c620_tx_id == 0x1FFU) {
-            send_can1_0x1ff = 1U;
-        } else {
-            send_can1_0x200 = 1U;
-        }
+    if (motor->type == CHASSIS_MOTOR_TYPE_VESC) {
+      ChassisMotor_SendCurrent(motor);
+      continue;
     }
 
-    if (send_can1_0x200 != 0U) {
-        CAN_Send_Data(&hcan1, 0x200, can1_0x200_data, 8);
+    int16_t current = (int16_t)ChassisMotor_Clamp(
+        motor->current_cmd * motor->command_direction, motor->current_limit);
+    uint8_t offset = (uint8_t)(motor->c620_tx_slot * 2U);
+
+    // 0x200 一帧控制 ID1~ID4，0x1FF 一帧控制 ID5~ID8  0x200 controls ID1~ID4 in
+    // one frame, while 0x1FF controls ID5~ID8 in one frame
+    uint8_t *data =
+        (motor->c620_tx_id == 0x1FFU) ? can1_0x1ff_data : can1_0x200_data;
+
+    data[offset] = (uint8_t)(current >> 8);
+    data[offset + 1U] = (uint8_t)current;
+
+    if (motor->c620_tx_id == 0x1FFU) {
+      send_can1_0x1ff = 1U;
+    } else {
+      send_can1_0x200 = 1U;
     }
-    if (send_can1_0x1ff != 0U) {
-        CAN_Send_Data(&hcan1, 0x1FF, can1_0x1ff_data, 8);
+  }
+
+  if (send_can1_0x200 != 0U) {
+    if (HAL_CAN_GetTxMailboxesFreeLevel(&hcan1) > 0U) {
+      CAN_Send_Data(&hcan1, 0x200, can1_0x200_data, 8);
+    }
+  }
+  if (send_can1_0x1ff != 0U) {
+    CAN_Send_Data(&hcan1, 0x1FF, can1_0x1ff_data, 8);
+  }
+}
+
+// 分时发送C620/N630电机的当前命令，避免一次发送过多数据导致 Mailbox 拥堵  Send current commands for C620 motors in a time-division manner to avoid bus congestion caused by sending too much data at once
+void ChassisMotor_SendAllCurrent_Section(void) {
+  uint8_t can1_0x200_data[8] = {0};
+  uint8_t can1_0x1ff_data[8] = {0};
+  uint8_t send_can1_0x200 = 0U;
+  uint8_t send_can1_0x1ff = 0U;
+
+  // 目前只适用于 4 个电机底盘，并且3个拓展帧，一个标准帧
+for (uint32_t i = 0; i < CHASSIS_MOTOR_COUNT; i++) {
+    ChassisMotor_t *motor = &ChassisMotor_Table[i];
+
+     if (motor->type != CHASSIS_MOTOR_TYPE_C620) {
+    continue;
+    }
+
+    int16_t current = (int16_t)ChassisMotor_Clamp(
+        motor->current_cmd * motor->command_direction, motor->current_limit);
+    uint8_t offset = (uint8_t)(motor->c620_tx_slot * 2U);
+
+    // 0x200 一帧控制 ID1~ID4，0x1FF 一帧控制 ID5~ID8  0x200 controls ID1~ID4 in
+    // one frame, while 0x1FF controls ID5~ID8 in one frame
+    uint8_t *data =
+        (motor->c620_tx_id == 0x1FFU) ? can1_0x1ff_data : can1_0x200_data;
+
+    data[offset] = (uint8_t)(current >> 8);
+    data[offset + 1U] = (uint8_t)current;
+
+    if (motor->c620_tx_id == 0x1FFU) {
+      send_can1_0x1ff = 1U;
+    } else {
+      send_can1_0x200 = 1U;
     }
 }
+
+    if (send_can1_0x200 != 0U) {
+      if (HAL_CAN_GetTxMailboxesFreeLevel(&hcan1) > 0U) {
+        CAN_Send_Data(&hcan1, 0x200, can1_0x200_data, 8);
+      }
+    }
+    if (send_can1_0x1ff != 0U) {
+      CAN_Send_Data(&hcan1, 0x1FF, can1_0x1ff_data, 8);
+    }
+
+    for (uint32_t n = 0U; n < CHASSIS_MOTOR_COUNT; n++) {
+         static uint32_t send_index = 0U;
+         static uint32_t j;
+         j = (send_index + n) % CHASSIS_MOTOR_COUNT;
+         ChassisMotor_t *motor = &ChassisMotor_Table[j];
+         send_index = (send_index + 1U) % CHASSIS_MOTOR_COUNT;
+         if (motor->type == CHASSIS_MOTOR_TYPE_VESC) {
+                ChassisMotor_SendCurrent(motor);
+            }
+             break;
+    }
+
+  
+}
+

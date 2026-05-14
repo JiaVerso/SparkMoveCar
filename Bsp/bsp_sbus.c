@@ -129,8 +129,8 @@ void SBUS_Handle(void)
         #else
 
         // char msg[128];
-        // 发送SBUS数据到串口，方便调试和监控  Send SBUS data to the serial port for debugging and monitoring
-        // 这里是CH1~CH8的数据，便于调试添加命名
+        // // 发送SBUS数据到串口，方便调试和监控  Send SBUS data to the serial port for debugging and monitoring
+        // // 这里是CH1~CH8的数据，便于调试添加命名
         // int len = snprintf(msg, sizeof(msg),
         //            "roll:%u pitch:%u thro:%u yaw:%u sw_c:%u roller:%u back_1:%u roller_2:%u\r\n",
         //            g_sbus_channels[0], g_sbus_channels[1],

@@ -31,8 +31,8 @@ extern "C" {
 
 // 遥控输入通道数量  Number of remote control input channels
 #define CHASSIS_SBUS_CH_COUNT 8U
-#define CHASSIS_SBUS_VX_CH    0U
-#define CHASSIS_SBUS_WZ_CH    1U
+#define CHASSIS_SBUS_VX_CH    1U
+#define CHASSIS_SBUS_WZ_CH    0U
 
 // SBUS输入的最小值、中心值、最大值和死区  Minimum, center, maximum, and deadband for remote control input
 #define CHASSIS_SBUS_MIN      300U
@@ -41,7 +41,7 @@ extern "C" {
 #define CHASSIS_SBUS_DEADBAND 0.10f
 
 // 底盘最大速度限制  Maximum speed limits for the chassis
-#define CHASSIS_MAX_VX_MPS      0.3f
+#define CHASSIS_MAX_VX_MPS      1.0f
 #define CHASSIS_MAX_WZ_RADPS    1.0f
 
 // 轮子直径 Wheel diameter 6inch = 0.1524m
@@ -129,6 +129,7 @@ void ChassisMotor_UpdateFromSbusChannels(const uint16_t channels[CHASSIS_SBUS_CH
 void ChassisMotor_ControlLoop(void);
 void ChassisMotor_SendCurrent(ChassisMotor_t *motor);
 void ChassisMotor_SendAllCurrent(void);
+void ChassisMotor_SendAllCurrent_Section(void);
 
 #ifdef __cplusplus
 }
