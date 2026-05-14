@@ -142,12 +142,12 @@ void ctrl_enable(Enum_Motor_Status target_motor)
 		case Motor1_Status_ENABLED:
 			// 启用Motor1的电机控制
 			motor[Motor1].start_flag = 1;
-			dm4310_enable(&hcan1, &motor[Motor1]);
+			dm4310_enable(&hcan2, &motor[Motor1]);
 			break;
 		case Motor2_Status_ENABLED:
 			// 启用Motor2的电机控制
 			motor[Motor2].start_flag = 1;
-			dm4310_enable(&hcan1, &motor[Motor2]);
+			dm4310_enable(&hcan2, &motor[Motor2]);
 			break;
         case Motor_ALL_Status_ENABLED:
 			// 启用所有的电机控制

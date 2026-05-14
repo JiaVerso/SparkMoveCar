@@ -19,10 +19,14 @@
 #include <stdlib.h>
 #include "main.h"
 #include "serial_plotter.h"
+#include "chassis.h"
 /* USER CODE END Includes */
 
 extern PID_t pid_speed;
 extern dm_motor_t motor[Motor_Max];
+
+extern ChassisMotor_t ChassisMotor_Table[CHASSIS_MOTOR_COUNT];
+
 /**
  * @brief  M3508 电机平滑正反转测试函数 (ID=2)
  * @note   这是一个阻塞型测试函数，仅供开机自检或裸机调试时使用！
@@ -120,12 +124,11 @@ void App_Test_Parse_Command(uint8_t *Buffer, uint16_t Length)
                 {
                     float f_val = strtof(pEnd + 1, NULL);
                     // 赋值
-                    pid_speed.Kp = p_val;
-                    pid_speed.Ki = i_val;
-                    pid_speed.Kd = d_val;
-                    pid_speed.Kf = f_val;
+                    ChassisMotor_Table[0].pid_kp = p_val;
+                    ChassisMotor_Table[0].pid_ki = i_val;
+                    ChassisMotor_Table[0].pid_kd = d_val;
+                    ChassisMotor_Table[0].pid_kf = f_val;
                 }
-               
             }
 
         }
@@ -255,4 +258,8 @@ void App_Test_Trigger_UART_DMA(UART_HandleTypeDef *huart, fifo_s_t *fifo, uint8_
             HAL_UART_Transmit_DMA(huart, dma_buf, len);
         }
     }
+}
+
+void App_Test_Send_Chassis_VOFA(void) {
+    // 
 }

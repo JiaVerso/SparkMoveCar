@@ -100,10 +100,10 @@ extern imu_t imu;
 extern uint8_t sbus_dma_buf[25];
 
 void VOFA_Init(void) {
-    vofa_packet.byte_data[12] = 0x00;
-    vofa_packet.byte_data[13] = 0x00;
-    vofa_packet.byte_data[14] = 0x80;
-    vofa_packet.byte_data[15] = 0x7F;
+    vofa_packet.byte_data[48] = 0x00;
+    vofa_packet.byte_data[49] = 0x00;
+    vofa_packet.byte_data[50] = 0x80;
+    vofa_packet.byte_data[51] = 0x7F;
 }
 /**
  * @brief 串口 DMA 循环绕回处理核心算法 (类的方法)
@@ -125,10 +125,9 @@ void Serialplot_Call_Back(uint8_t *Buffer, uint16_t Length)
     SBUS_Handle();
 }
 
-
 void Serialplot8_Call_Back(uint8_t *Buffer, uint16_t Length)
 {
-    // App_Test_Parse_Command(Buffer, Length);
+    App_Test_Parse_Command(Buffer, Length);
 }
 
  /* ---------------------------------------CAN Callback Configuration--------------------------------------------------------*/
@@ -143,9 +142,13 @@ void Motor_Cmd_TxCallback(Struct_CAN_Rx_Buffer *Rx_Buffer) {
   ChassisMotor_CANRxDispatch(Rx_Buffer);
 }
 
+void DMotor_Cmd_TxCallback(Struct_CAN_Rx_Buffer *Rx_Buffer) {
+  // 解析 DM-J4310 的反馈
+}
+
 void UART8_Send_To_Plotter_DMA(uint8_t *data, uint16_t len) {
     // 调用 HAL 库的 DMA 发送函数
-    UART_Send_Data(&huart8, data, 1 + 12 * sizeof(float));
+    UART_Send_Data(&huart8, data, len);
 }
 
 /* USER CODE END PV */
@@ -215,21 +218,25 @@ int main(void)
 
   // PID_Init(&pid_speed, 0.0f, 0.0f, 0.0f, 0.0f,2500.0f, 2500.0f);
 
-  // dm4310_motor_init(&hcan1, &motor[Motor1], MOTOR_LEFT_CANID, POS_MODE);
+  dm4310_motor_init(&hcan1, &motor[Motor1], MOTOR_LEFT_CANID, POS_MODE);
+  ctrl_enable(Motor1_Status_ENABLED);
 
   // uart_rx_fifo = fifo_s_create(2048);
   // HAL_UARTEx_ReceiveToIdle_DMA(&huart8, USART8_Rx_buf, RX_BUF_SIZE);
 
-  // Plotter_Init(&my_plotter, rx_buffer, 0xAA, UART8_Send_To_Plotter_DMA);
+  Plotter_Init(&my_plotter, rx_buffer, 0xAA, UART8_Send_To_Plotter_DMA);
   
-  // ctrl_enable(Motor1_Status_ENABLED);
+  
   CAN_Filter_Mask_Config(&hcan1, CAN_FILTER(0) | CAN_FIFO_0 | CAN_STDID | CAN_DATA_TYPE, 0, 0);
-      
   CAN_Filter_Ext_Mask_Config(&hcan1, 1, 0, 0, CAN_FILTER_FIFO1);
+  CAN_Init(&hcan1, Motor_Cmd_TxCallback);
+
+  CAN_Filter_Mask_Config(&hcan2, CAN_FILTER(27) | CAN_FIFO_0 | CAN_STDID | CAN_DATA_TYPE, 0, 0);
+  CAN_Init(&hcan2, DMotor_Cmd_TxCallback);
 
   // VOFA_Init();
   ChassisMotor_InitAll();
-  CAN_Init(&hcan1, Motor_Cmd_TxCallback);
+  
 
   // imu_init(0x22, 0x23, &hcan1);
 
@@ -266,13 +273,6 @@ int main(void)
     // Plotter_Append(&my_plotter, motor_ID1.rx_torque);
     // Plotter_Append(&my_plotter, motor_ID1.rx_temperature);
 
-    // Plotter_Begin(&my_plotter);
-    // Plotter_Append(&my_plotter, motor[Motor1].para.pos);
-    // Plotter_Append(&my_plotter, motor[Motor1].para.vel);
-    // Plotter_Append(&my_plotter, motor[Motor1].para.tor);
-    // Plotter_Append(&my_plotter, motor[Motor1].para.Tmos);
-    // Plotter_SendData(&my_plotter);
-
     // mpu_get_data();
     // HAL_UART_Transmit_DMA(&huart8, (const uint8_t *)&imu, sizeof(imu_t));
 
@@ -296,6 +296,26 @@ int main(void)
     // comm_can_set_rpm(25, 8000.0f);
     // comm_can_set_rpm(24, 8000.0f);
     ChassisMotor_ControlLoop();
+
+    // Plotter_Begin(&my_plotter);
+    // Plotter_Append(&my_plotter, ChassisMotor_Table[0].target_wheel_rpm);
+    // Plotter_Append(&my_plotter, ChassisMotor_Table[0].feedback_wheel_rpm);
+    // Plotter_Append(&my_plotter, ChassisMotor_Table[0].current_cmd);
+
+    //  Plotter_Append(&my_plotter, ChassisMotor_Table[1].target_wheel_rpm);
+    // Plotter_Append(&my_plotter, ChassisMotor_Table[1].feedback_wheel_rpm);
+    // Plotter_Append(&my_plotter, ChassisMotor_Table[1].current_cmd);
+
+    //  Plotter_Append(&my_plotter, ChassisMotor_Table[2].target_wheel_rpm);
+    // Plotter_Append(&my_plotter, ChassisMotor_Table[2].feedback_wheel_rpm);
+    // Plotter_Append(&my_plotter, ChassisMotor_Table[2].current_cmd);
+
+    //  Plotter_Append(&my_plotter, ChassisMotor_Table[3].target_wheel_rpm);
+    // Plotter_Append(&my_plotter, ChassisMotor_Table[3].feedback_wheel_rpm);
+    // Plotter_Append(&my_plotter, ChassisMotor_Table[3].current_cmd);
+
+    // Plotter_SendData(&my_plotter);
+
     HAL_Delay(10);
   }
   /* USER CODE END 3 */
