@@ -6,6 +6,7 @@
 #include "motor_dji.h"
 
 #define MOTOR_LEFT_CANID 0X01
+#define MOTOR_RIGHT_CANID 0X02
 
 extern int8_t motor_id;
 

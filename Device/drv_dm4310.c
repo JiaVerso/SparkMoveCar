@@ -215,7 +215,7 @@ void enable_motor_mode(CAN_HandleTypeDef* hcan, uint16_t motor_id, uint16_t mode
 	data[6] = 0xFF;
 	data[7] = 0xFC;
 	
-    CAN_Send_Data(&hcan1, id, data, 8);
+    CAN_Send_Data(&hcan2, id, data, 8);
 }
 /**
 ************************************************************************
@@ -267,7 +267,7 @@ void save_pos_zero(CAN_HandleTypeDef* hcan, uint16_t motor_id, uint16_t mode_id)
 	data[6] = 0xFF;
 	data[7] = 0xFE;
 	
-	CAN_Send_Data(&hcan1, id, data, 8);
+	CAN_Send_Data(&hcan2, id, data, 8);
 }
 /**
 ************************************************************************
@@ -362,7 +362,7 @@ void pos_speed_ctrl(CAN_HandleTypeDef* hcan, uint16_t motor_id, float pos, float
     data[7] = my_converter.bytes[7];
 
 	
-	CAN_Send_Data(&hcan1, id, data, 8);
+	CAN_Send_Data(&hcan2, id, data, 8);
 }
 /**
 ************************************************************************

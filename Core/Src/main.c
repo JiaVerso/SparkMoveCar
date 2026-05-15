@@ -21,6 +21,7 @@
 #include "can.h"
 #include "dma.h"
 #include "spi.h"
+#include "stm32f4xx_hal.h"
 #include "usart.h"
 #include "gpio.h"
 
@@ -218,9 +219,6 @@ int main(void)
 
   // PID_Init(&pid_speed, 0.0f, 0.0f, 0.0f, 0.0f,2500.0f, 2500.0f);
 
-  dm4310_motor_init(&hcan1, &motor[Motor1], MOTOR_LEFT_CANID, POS_MODE);
-  ctrl_enable(Motor1_Status_ENABLED);
-
   // uart_rx_fifo = fifo_s_create(2048);
   // HAL_UARTEx_ReceiveToIdle_DMA(&huart8, USART8_Rx_buf, RX_BUF_SIZE);
 
@@ -233,6 +231,16 @@ int main(void)
 
   CAN_Filter_Mask_Config(&hcan2, CAN_FILTER(27) | CAN_FIFO_0 | CAN_STDID | CAN_DATA_TYPE, 0, 0);
   CAN_Init(&hcan2, DMotor_Cmd_TxCallback);
+  
+  dm4310_motor_init(&hcan2, &motor[Motor1], MOTOR_LEFT_CANID, 1);
+  dm4310_motor_init(&hcan2, &motor[Motor2], MOTOR_RIGHT_CANID, 1);
+  ctrl_enable(Motor_ALL_Status_ENABLED);
+
+  // save_pos_zero(&hcan2, MOTOR_LEFT_CANID, 1);
+  // save_pos_zero(&hcan2, MOTOR_RIGHT_CANID, 1);
+  pos_speed_ctrl(&hcan2, MOTOR_LEFT_CANID, 0.0f, 0.3f);
+  pos_speed_ctrl(&hcan2, MOTOR_RIGHT_CANID, 0.0f, 0.3f);
+  HAL_Delay(100);
 
   // VOFA_Init();
   ChassisMotor_InitAll();
@@ -247,8 +255,6 @@ int main(void)
   /* 创建并启动电机控制线程 (优先级 15) */
   // rt_thread_t motor_tid = rt_thread_create("motor", motor_thread_entry, RT_NULL, 1024, 15, 10);
   // rt_thread_startup(motor_tid);
-
-  // mpu_device_init();
 
   // IMU_QuaternionEKF_Init(10.0f, 0.001f, 1.0e7f, 1.0f, 0.01f);
   // IMU_QuaternionEKF_Set_MPU6500_Config(16.384f, 4096.0f, 9.80665f, gyro_map, accel_map);
@@ -288,7 +294,6 @@ int main(void)
     //     );
     // HAL_Delay(10);
 
-   
     // float rpm = n630_motor[21].rpm;
     // HAL_UART_Transmit_DMA(&huart8, (const uint8_t *)&rpm, sizeof(float));
     // comm_can_set_rpm(21, 8000.0f);
@@ -297,6 +302,8 @@ int main(void)
     // comm_can_set_rpm(24, 8000.0f);
     ChassisMotor_ControlLoop();
 
+  //   pos_speed_ctrl(&hcan2, MOTOR_LEFT_CANID, 0.0f, 1.0f);
+  // pos_speed_ctrl(&hcan2, MOTOR_RIGHT_CANID, 0.0f, 1.0f);
     // Plotter_Begin(&my_plotter);
     // Plotter_Append(&my_plotter, ChassisMotor_Table[0].target_wheel_rpm);
     // Plotter_Append(&my_plotter, ChassisMotor_Table[0].feedback_wheel_rpm);
@@ -316,7 +323,7 @@ int main(void)
 
     // Plotter_SendData(&my_plotter);
 
-    HAL_Delay(10);
+    HAL_Delay(20);
   }
   /* USER CODE END 3 */
 }

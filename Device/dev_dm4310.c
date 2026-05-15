@@ -37,7 +37,7 @@ void dm4310_motor_init(CAN_HandleTypeDef *hcan, dm_motor_t *p, uint8_t id, uint1
 	memset(p, 0, sizeof(dm_motor_t));
 
 	// 设置Motor的电机信息
-	p->id = id + init_mode;
+	p->id = id;
 	p->ctrl.mode = init_mode;		// 0: MIT模式   1: 位置速度模式   2: 速度模式
 	p->cmd.mode = init_mode;
 
@@ -152,10 +152,10 @@ void ctrl_enable(Enum_Motor_Status target_motor)
         case Motor_ALL_Status_ENABLED:
 			// 启用所有的电机控制
             motor[Motor1].start_flag = 1;
-            dm4310_enable(&hcan1, &motor[Motor1]);
+            dm4310_enable(&hcan2, &motor[Motor1]);
 			
             motor[Motor2].start_flag = 1;
-			dm4310_enable(&hcan1, &motor[Motor2]);
+			dm4310_enable(&hcan2, &motor[Motor2]);
 			break;
         default:
             break;
