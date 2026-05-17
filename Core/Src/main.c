@@ -99,6 +99,7 @@ typedef union {
 VOFA_JustFloat_t vofa_packet;
 extern imu_t imu;
 extern uint8_t sbus_dma_buf[25];
+extern ChassisMotor_t ChassisMotor_Table[CHASSIS_MOTOR_COUNT];
 
 void VOFA_Init(void) {
     vofa_packet.byte_data[48] = 0x00;
@@ -236,11 +237,12 @@ int main(void)
   dm4310_motor_init(&hcan2, &motor[Motor2], MOTOR_RIGHT_CANID, 1);
   ctrl_enable(Motor_ALL_Status_ENABLED);
 
-  // save_pos_zero(&hcan2, MOTOR_LEFT_CANID, 1);
-  // save_pos_zero(&hcan2, MOTOR_RIGHT_CANID, 1);
+//  save_pos_zero(&hcan2, MOTOR_LEFT_CANID, 1);
+//   save_pos_zero(&hcan2, MOTOR_RIGHT_CANID, 1);
+
   pos_speed_ctrl(&hcan2, MOTOR_LEFT_CANID, 0.0f, 0.3f);
   pos_speed_ctrl(&hcan2, MOTOR_RIGHT_CANID, 0.0f, 0.3f);
-  HAL_Delay(100);
+  
 
   // VOFA_Init();
   ChassisMotor_InitAll();
@@ -300,7 +302,11 @@ int main(void)
     // comm_can_set_rpm(22, 8000.0f);
     // comm_can_set_rpm(25, 8000.0f);
     // comm_can_set_rpm(24, 8000.0f);
+    
+   
     ChassisMotor_ControlLoop();
+    
+
 
   //   pos_speed_ctrl(&hcan2, MOTOR_LEFT_CANID, 0.0f, 1.0f);
   // pos_speed_ctrl(&hcan2, MOTOR_RIGHT_CANID, 0.0f, 1.0f);
@@ -320,10 +326,24 @@ int main(void)
     //  Plotter_Append(&my_plotter, ChassisMotor_Table[3].target_wheel_rpm);
     // Plotter_Append(&my_plotter, ChassisMotor_Table[3].feedback_wheel_rpm);
     // Plotter_Append(&my_plotter, ChassisMotor_Table[3].current_cmd);
+    static uint32_t counter = 0;
+    if(counter++ % 200 == 0) {
+         char msg[128];
+        // 发送SBUS数据到串口，方便调试和监控  Send SBUS data to the serial port for debugging and monitoring
+        // 这里是CH1~CH8的数据，便于调试添加命名
+        int len = snprintf(msg, sizeof(msg),
+                   "1_T:%ld 1_R:%ld 2_T:%ld 2_R:%ld 3_T:%ld 3_R:%ld 4_T:%ld 4_R:%ld\r\n",
+                   (long)ChassisMotor_Table[0].target_wheel_rpm, (long)ChassisMotor_Table[0].feedback_wheel_rpm, 
+                   (long)ChassisMotor_Table[1].target_wheel_rpm, (long)ChassisMotor_Table[1].feedback_wheel_rpm, 
+                   (long)ChassisMotor_Table[2].target_wheel_rpm, (long)ChassisMotor_Table[2].feedback_wheel_rpm, 
+                   (long)ChassisMotor_Table[3].target_wheel_rpm, (long)ChassisMotor_Table[3].feedback_wheel_rpm);
 
+        UART_Send_Data(&huart8, (uint8_t *)msg, len);
+        counter = 0;
+    }
     // Plotter_SendData(&my_plotter);
 
-    HAL_Delay(20);
+    HAL_Delay(1);
   }
   /* USER CODE END 3 */
 }

@@ -94,7 +94,7 @@ ChassisMotor_t ChassisMotor_Table[CHASSIS_MOTOR_COUNT] = {
         .wheel = CHASSIS_WHEEL_LF,
         .type = CHASSIS_MOTOR_TYPE_VESC,
         .hcan = &hcan1,
-        .vesc_id = 21,
+        .vesc_id = 22,
 
         // 将电机反馈的转速转换成轮子转速的比例系数  The ratio coefficient to convert the motor feedback speed into wheel speed
         .feedback_to_wheel_rpm = 1.0f / (CHASSIS_VESC_POLE_PAIRS * CHASSIS_VESC_GEAR_RATIO),
@@ -102,17 +102,17 @@ ChassisMotor_t ChassisMotor_Table[CHASSIS_MOTOR_COUNT] = {
         .current_limit = CHASSIS_VESC_CURRENT_LIMIT_A,
           
         // VESC PID output uint: ampere(A)
-        .pid_kp = 0.06f,
+        .pid_kp = 0.04f,
         .pid_ki = 0.001f,
         .pid_kd = 0.0f,
         .pid_kf = 0.0f,
-        .pid_max_integral = 5.0f,
+        .pid_max_integral = 10.0f,
     },
     {
         .wheel = CHASSIS_WHEEL_RF,
         .type = CHASSIS_MOTOR_TYPE_VESC,
         .hcan = &hcan1,
-        .vesc_id = 22,
+        .vesc_id = 21,
         .feedback_to_wheel_rpm = 1.0f / (CHASSIS_VESC_POLE_PAIRS * CHASSIS_VESC_GEAR_RATIO),
         .command_direction = 1.0f,
         .current_limit = CHASSIS_VESC_CURRENT_LIMIT_A,
@@ -122,7 +122,7 @@ ChassisMotor_t ChassisMotor_Table[CHASSIS_MOTOR_COUNT] = {
         .pid_ki = 0.001f,
         .pid_kd = 0.0f,
         .pid_kf = 0.0f,
-        .pid_max_integral = 5.0f,
+        .pid_max_integral = 10.0f,
     },
     {
         .wheel = CHASSIS_WHEEL_LB,
@@ -138,7 +138,7 @@ ChassisMotor_t ChassisMotor_Table[CHASSIS_MOTOR_COUNT] = {
         .pid_ki = 0.001f,
         .pid_kd = 0.0f,
         .pid_kf = 0.0f,
-        .pid_max_integral = 5.0f,
+        .pid_max_integral = 10.0f,
     },
     {
         .wheel = CHASSIS_WHEEL_RB,
@@ -151,11 +151,11 @@ ChassisMotor_t ChassisMotor_Table[CHASSIS_MOTOR_COUNT] = {
         .command_direction = 1.0f,
         .current_limit = CHASSIS_C620_CURRENT_LIMIT,
         // C620 PID output unit: DJI current command raw value, in the range of [-65535, 65535], corresponding to [-max_current, max_current]
-        .pid_kp = 40.0f,
-        .pid_ki = 0.02f,
+        .pid_kp = 30.0f,
+        .pid_ki = 0.2f,
         .pid_kd = 0.0f,
-        .pid_kf = 0.0f,
-        .pid_max_integral = 1500.0f,
+        .pid_kf = 5.0f,
+        .pid_max_integral = 1200.0f,
     },
 };
 

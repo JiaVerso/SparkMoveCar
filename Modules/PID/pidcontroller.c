@@ -52,7 +52,8 @@ float PID_Calculate(PID_t *pid, float input, float setpoint) {
     // 分别计算 P、I、D、F 三项
     float p_out = pid->error * pid->Kp;
     float d_out = (pid->error - pid->prev_error) * pid->Kd;
-    float f_out = (setpoint - pid->prev_target) * pid->Kf;
+    // float f_out = (setpoint - pid->prev_target) * pid->Kf;
+    float f_out = setpoint * pid->Kf;
 
     // 积分累加与积分限幅
     pid->integral += (pid->error * pid->Ki);
