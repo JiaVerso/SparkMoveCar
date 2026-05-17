@@ -237,7 +237,7 @@ int main(void)
   dm4310_motor_init(&hcan2, &motor[Motor2], MOTOR_RIGHT_CANID, 1);
   ctrl_enable(Motor_ALL_Status_ENABLED);
 
-//  save_pos_zero(&hcan2, MOTOR_LEFT_CANID, 1);
+//   save_pos_zero(&hcan2, MOTOR_LEFT_CANID, 1);
 //   save_pos_zero(&hcan2, MOTOR_RIGHT_CANID, 1);
 
   pos_speed_ctrl(&hcan2, MOTOR_LEFT_CANID, 0.0f, 0.3f);

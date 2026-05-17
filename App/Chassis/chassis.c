@@ -16,8 +16,14 @@
 #include "dev_n630.h"
 #include "drv_can.h"
 #include "stm32f4xx_hal_can.h"
+#include "dev_dm4310.h"
+#include "drv_dm4310.h"
+#include <math.h>
 
 #define DRIVE_PI 3.1415926f
+
+// 设置 DM4310 电机阿克曼转向角度  Set the Ackermann steering angle for DM4310 motors
+extern CAN_HandleTypeDef hcan2;
 
 // 将数值限制在[-limit, limit]范围内  Clamp a value to the range [-limit, limit]
 static float ChassisMotor_Clamp(float value, float limit)
@@ -244,6 +250,7 @@ void ChassisMotor_SetWheelTargetRpm(ChassisWheel_e wheel, float wheel_rpm)
 void ChassisMotor_SetChassisSpeed(float vx_mps, float wz_radps)
 {
     const float wheel_circumference_m = CHASSIS_WHEEL_DIAMETER_M * DRIVE_PI;
+    // 差速运动学计算  Differential drive kinematics calculation
     const float left_mps = vx_mps - wz_radps * (CHASSIS_TRACK_WIDTH_M * 0.5f);
     const float right_mps = vx_mps + wz_radps * (CHASSIS_TRACK_WIDTH_M * 0.5f);
 
@@ -257,21 +264,73 @@ void ChassisMotor_SetChassisSpeed(float vx_mps, float wz_radps)
     ChassisMotor_SetWheelTargetRpm(CHASSIS_WHEEL_RB, right_wheels_rpm);
 }
 
+// 设置底盘的阿克曼转向角度  Set the Ackermann steering angle for the chassis
+void ChassisMotor_SetAckermann(float vx_mps, float dm_radps)
+{
+    float v_fl, v_fr, v_rl, v_rr; // 四轮线速度 (m/s)
+    float radps_l, radps_r;       // 左右前轮转向角 (rad)
+
+   // 直线形式 Straight line case
+    if (fabs(dm_radps) < 1.0f) {
+        v_fl = v_fr = v_rl = v_rr = vx_mps;
+        radps_l = radps_r = 0.0f;
+    } 
+    // 阿克曼转向解算
+    else {
+        // 限制最大转向角
+        dm_radps = ChassisMotor_Clamp(dm_radps, CHASSIS_MAX_STEER_RAD);
+
+        // 计算转弯半径 R
+        float R = CHASSIS_WHEELBASE_M / tanf(dm_radps);
+        
+        // 计算底盘偏航角速度 w = v / R
+        float w = vx_mps / R;
+
+        // 计算内/外前轮的实际转向角
+        radps_l = atanf(CHASSIS_WHEELBASE_M / (R - CHASSIS_TRACK_WIDTH_M / 2.0f));
+        radps_r = atanf(CHASSIS_WHEELBASE_M / (R + CHASSIS_TRACK_WIDTH_M / 2.0f));
+
+        // 后轮公式：v = w * (R ± W/2)
+        v_rl = w * (R - CHASSIS_TRACK_WIDTH_M / 2.0f);
+        v_rr = w * (R + CHASSIS_TRACK_WIDTH_M / 2.0f);
+        
+        // 前轮公式：v = w * sqrt(L^2 + (R ± W/2)^2)
+        float sign = (vx_mps >= 0) ? 1.0f : -1.0f;
+        v_fl = sign * fabs(w) * sqrtf(CHASSIS_WHEELBASE_M * CHASSIS_WHEELBASE_M + 
+                                     (R - CHASSIS_TRACK_WIDTH_M / 2.0f) * (R - CHASSIS_TRACK_WIDTH_M / 2.0f));
+        v_fr = sign * fabs(w) * sqrtf(CHASSIS_WHEELBASE_M * CHASSIS_WHEELBASE_M + 
+                                     (R + CHASSIS_TRACK_WIDTH_M / 2.0f) * (R + CHASSIS_TRACK_WIDTH_M / 2.0f));
+    }
+    
+    const float wheel_circumference_m = CHASSIS_WHEEL_DIAMETER_M * DRIVE_PI;
+    const float mps_to_rpm = 60.0f / wheel_circumference_m;
+
+    ChassisMotor_SetWheelTargetRpm(CHASSIS_WHEEL_LF, v_fl * mps_to_rpm);
+    ChassisMotor_SetWheelTargetRpm(CHASSIS_WHEEL_RF, v_fr * mps_to_rpm);
+    ChassisMotor_SetWheelTargetRpm(CHASSIS_WHEEL_LB, v_rl * mps_to_rpm);
+    ChassisMotor_SetWheelTargetRpm(CHASSIS_WHEEL_RB, v_rr * mps_to_rpm);
+
+    // DM4310 电机的转向控制  Steering control for DM4310 motors
+    pos_speed_ctrl(&hcan2, MOTOR_LEFT_CANID, radps_l, 1.0f);
+    pos_speed_ctrl(&hcan2, MOTOR_RIGHT_CANID, radps_r, 1.0f);
+}
+
 // 根据遥控器输入更新底盘速度命令 Update chassis speed commands based on remote control input
 void ChassisMotor_UpdateFromSbusChannels(const uint16_t channels[CHASSIS_SBUS_CH_COUNT])
 {
     float vx_cmd;
-    float wz_cmd;
+    float radps_cmd;
 
     if (channels == NULL) {
         ChassisMotor_SetChassisSpeed(0.0f, 0.0f);
         return;
     }
 
+    // 对遥控器输入进行线性化处理，目的是解耦 
     vx_cmd = ChassisMotor_NormalizeChannel(channels[CHASSIS_SBUS_VX_CH]) * CHASSIS_MAX_VX_MPS;
-    wz_cmd = ChassisMotor_NormalizeChannel(channels[CHASSIS_SBUS_WZ_CH]) * CHASSIS_MAX_WZ_RADPS;
+    radps_cmd = ChassisMotor_NormalizeChannel(channels[CHASSIS_SBUS_DM_RADPS_CH]) * CHASSIS_MAX_WZ_RADPS;
 
-    ChassisMotor_SetChassisSpeed(vx_cmd, wz_cmd);
+    ChassisMotor_SetChassisSpeed(vx_cmd, radps_cmd);
 }
 
 static uint8_t ChassisMotor_Stop(ChassisMotor_t *motor) {

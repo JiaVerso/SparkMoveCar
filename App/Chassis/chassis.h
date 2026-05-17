@@ -33,6 +33,7 @@ extern "C" {
 #define CHASSIS_SBUS_CH_COUNT 8U
 #define CHASSIS_SBUS_VX_CH    1U
 #define CHASSIS_SBUS_WZ_CH    0U
+#define CHASSIS_SBUS_DM_RADPS_CH   2U
 
 // SBUS输入的最小值、中心值、最大值和死区  Minimum, center, maximum, and deadband for remote control input
 #define CHASSIS_SBUS_MIN      300U
@@ -46,8 +47,12 @@ extern "C" {
 
 // 轮子直径 Wheel diameter 6inch = 0.1524m
 #define CHASSIS_WHEEL_DIAMETER_M 0.1524f
+// 轴距，前后轮中心之间的距离 Wheelbase, the distance between the centers of the front and rear wheels
+#define CHASSIS_WHEELBASE_M      0.500f
 // 轮距，左右轮中心之间的距离 Track width, the distance between the centers of the left and right wheels
 #define CHASSIS_TRACK_WIDTH_M    0.48f
+// 最大转向角，单位是弧度 Maximum steering angle in radians
+#define CHASSIS_MAX_STEER_RAD    0.610f
 
 #define CHASSIS_VESC_POLE_PAIRS  7.0f
 // VESC的减速比，电机转速 / 轮子转速  The gear ratio for VESC, motor speed / wheel speed
