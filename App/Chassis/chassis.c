@@ -57,6 +57,23 @@ static float ChassisMotor_NormalizeChannel(uint16_t channel)
     return value;
 }
 
+// 阿克曼转向角度特殊的归一化处理 Special normalization for Ackermann steering angle
+static float ChassisMotor_NormalizeSteerChannel(uint16_t channel)
+{
+    if (channel > CHASSIS_SBUS_STEER_CENTER - CHASSIS_SBUS_STEER_DEADBAND_RAW &&
+        channel < CHASSIS_SBUS_STEER_CENTER + CHASSIS_SBUS_STEER_DEADBAND_RAW) {
+        return 0.0f;
+    }
+
+    if (channel >= CHASSIS_SBUS_STEER_CENTER) {
+        return (float)(channel - CHASSIS_SBUS_STEER_CENTER) /
+               (float)(CHASSIS_SBUS_STEER_MAX - CHASSIS_SBUS_STEER_CENTER);
+    } else {
+        return -((float)(CHASSIS_SBUS_STEER_CENTER - channel) /
+                 (float)(CHASSIS_SBUS_STEER_CENTER - CHASSIS_SBUS_STEER_MIN));
+    }
+}
+
 // 根据轮子枚举查找对应的电机控制结构体指针  Find the corresponding motor control structure pointer based on the wheel enumeration
 static ChassisMotor_t *ChassisMotor_FindByWheel(ChassisWheel_e wheel)
 {
@@ -271,9 +288,11 @@ void ChassisMotor_SetAckermann(float vx_mps, float dm_radps)
     float radps_l, radps_r;       // 左右前轮转向角 (rad)
 
    // 直线形式 Straight line case
-    if (fabs(dm_radps) < 1.0f) {
+    if (fabs(dm_radps) < 0.10f) {
         v_fl = v_fr = v_rl = v_rr = vx_mps;
         radps_l = radps_r = 0.0f;
+        pos_speed_ctrl(&hcan2, MOTOR_LEFT_CANID, 0, 0.5f);
+        pos_speed_ctrl(&hcan2, MOTOR_RIGHT_CANID, 0, 0.5f);
     } 
     // 阿克曼转向解算
     else {
@@ -311,8 +330,8 @@ void ChassisMotor_SetAckermann(float vx_mps, float dm_radps)
     ChassisMotor_SetWheelTargetRpm(CHASSIS_WHEEL_RB, v_rr * mps_to_rpm);
 
     // DM4310 电机的转向控制  Steering control for DM4310 motors
-    pos_speed_ctrl(&hcan2, MOTOR_LEFT_CANID, radps_l, 1.0f);
-    pos_speed_ctrl(&hcan2, MOTOR_RIGHT_CANID, radps_r, 1.0f);
+    pos_speed_ctrl(&hcan2, MOTOR_LEFT_CANID, radps_l, 0.5f);
+    pos_speed_ctrl(&hcan2, MOTOR_RIGHT_CANID, radps_r, 0.5f);
 }
 
 // 根据遥控器输入更新底盘速度命令 Update chassis speed commands based on remote control input
@@ -328,9 +347,9 @@ void ChassisMotor_UpdateFromSbusChannels(const uint16_t channels[CHASSIS_SBUS_CH
 
     // 对遥控器输入进行线性化处理，目的是解耦 
     vx_cmd = ChassisMotor_NormalizeChannel(channels[CHASSIS_SBUS_VX_CH]) * CHASSIS_MAX_VX_MPS;
-    radps_cmd = ChassisMotor_NormalizeChannel(channels[CHASSIS_SBUS_DM_RADPS_CH]) * CHASSIS_MAX_WZ_RADPS;
+    radps_cmd = ChassisMotor_NormalizeSteerChannel(channels[CHASSIS_SBUS_DM_RADPS_CH]) * CHASSIS_MAX_STEER_RAD;
 
-    ChassisMotor_SetChassisSpeed(vx_cmd, radps_cmd);
+    ChassisMotor_SetAckermann(vx_cmd, radps_cmd);
 }
 
 static uint8_t ChassisMotor_Stop(ChassisMotor_t *motor) {
