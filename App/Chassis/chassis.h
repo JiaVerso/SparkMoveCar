@@ -55,11 +55,11 @@ extern "C" {
 // 轮子直径 Wheel diameter 6inch = 0.1524m
 #define CHASSIS_WHEEL_DIAMETER_M 0.1524f
 // 轴距，前后轮中心之间的距离 Wheelbase, the distance between the centers of the front and rear wheels
-#define CHASSIS_WHEELBASE_M      0.500f
+#define CHASSIS_WHEELBASE_M      0.600f
 // 轮距，左右轮中心之间的距离 Track width, the distance between the centers of the left and right wheels
-#define CHASSIS_TRACK_WIDTH_M    0.48f
+#define CHASSIS_TRACK_WIDTH_M    0.585f
 // 最大转向角，单位是弧度 Maximum steering angle in radians
-#define CHASSIS_MAX_STEER_RAD    0.450f
+#define CHASSIS_MAX_STEER_RAD    0.500f
 
 #define CHASSIS_VESC_POLE_PAIRS  7.0f
 // VESC的减速比，电机转速 / 轮子转速  The gear ratio for VESC, motor speed / wheel speed
