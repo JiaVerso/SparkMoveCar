@@ -1,78 +1,182 @@
 # SparkMoveCar
 
-SparkMoveCar 是一个基于 STM32F427XX 微控制器的机器人底盘控制系统。该项目集成了 RT-Thread 实时操作系统，采用 C/C++ 混合编程，通过 CMake 构建，旨在实现对 DJI 电机（如 M3508/C620）和 达妙电机（DM4310）的精确控制。
+![SparkMoveCar hardware](docs/spark_move_car.jpg)
 
-## 🚀 项目概览
+SparkMoveCar is a STM32F427 based mobile robot chassis control project. It targets a six-wheel rover-style platform with CAN motor control, SBUS remote input, UART debugging, RT-Thread Nano scheduling, and C/C++ mixed embedded development.
 
-- **核心芯片**: STM32F427IIH6 (高性能 ARM Cortex-M4)
-- **操作系统**: RT-Thread Nano
-- **构建系统**: CMake + GCC/Clang (ARM None EABI)
-- **编程语言**: C11, C++17
+> Note: the picture above is reserved for the real vehicle image. Put the real photo or rendering at `docs/spark_move_car.jpg` and GitHub/Gitee will render it automatically.
 
-## 🛠 硬件环境
+## 1. News
 
-- **控制板**: 通用 STM32F427 开发板（如 RoboMaster A 型主控板）
-- **驱动电机**: 
-  - DJI M3508 直流无刷减速电机 + C620 电调 (CAN 通信)
-  - 达妙 DM4310 动力电机 (CAN 通信)
-- **外设**:
-  - 多路 CAN 总线 (CAN1/CAN2)
-  - UART 串口通信 (支持 DMA + FIFO + 空闲中断)
-  - 板载 LED 状态指示
-  - 24V 外部供电控制 (PMOS 驱动)
+- **2026-05-22**: README is reorganized in a FAST-LIO2-like style.
+- **2026-05-13**: Chassis control module added, including SBUS input mapping and wheel-speed control interface.
 
-## 📂 项目结构
+## 2. Features
+
+- STM32F427IIH6 / ARM Cortex-M4 embedded chassis controller.
+- RT-Thread Nano runtime with STM32 HAL peripheral initialization.
+- CMake based build system with C11, C++17, and ARM GCC/Clang toolchain support.
+- CAN1 / CAN2 motor communication abstraction.
+- DJI M3508 + C620 motor feedback parsing and current command output.
+- DM4310 motor device support through CAN.
+- SBUS remote-control input decoding for velocity, steering, and emergency stop.
+- Ackermann-style chassis parameters, wheel-speed target conversion, and PID speed loop.
+- UART DMA + FIFO infrastructure for debugging, plotting, and command parsing.
+- IMU / Quaternion EKF modules reserved for attitude estimation experiments.
+
+## 3. Hardware Platform
+
+| Part | Description |
+| --- | --- |
+| MCU | STM32F427IIH6 |
+| Control board | STM32F427 development board, such as RoboMaster Type-A style controller |
+| RTOS | RT-Thread Nano |
+| Drive motors | DJI M3508 + C620, DM4310, or VESC-compatible wheel motor setup |
+| Communication | CAN1, CAN2, UART, SBUS |
+| Debug interface | UART8 / USART1, serial plotter utilities |
+| Power | 24 V external power path with board-level switching |
+
+### Chassis Parameters
+
+| Parameter | Value |
+| --- | --- |
+| Wheel count | 4 active wheel controllers by default |
+| Wheel diameter | 0.1524 m |
+| Wheelbase | 0.600 m |
+| Track width | 0.585 m |
+| Maximum linear speed | 1.0 m/s |
+| Maximum yaw rate | 1.0 rad/s |
+| Maximum steering angle | 0.500 rad |
+
+## 4. Software Architecture
 
 ```text
 SparkMoveCar/
-├── App/                # 应用层测试代码
-├── Bsp/                # 硬件抽象层 (LED, CAN, UART, Math)
-├── Core/               # 核心启动代码及 C++ 业务入口 (app_main.cpp)
-├── Device/             # 具体设备驱动 (DJI 电机, 达妙电机, 串口绘图仪)
-├── Modules/            # 通用算法模块 (PID 控制器, FIFO 环形缓冲区)
-├── Middlewares/        # RT-Thread 操作系统组件
-├── cmake/              # CMake 编译配置文件
-└── .doc/               # 开发笔记与技术总结 (process.md)
+|-- App/                         # Application layer and chassis control
+|   `-- Chassis/                 # Chassis motor table, kinematics, SBUS mapping
+|-- Bsp/                         # Board support package: CAN, UART, IMU, math, SBUS
+|-- Core/                        # STM32CubeMX generated startup and main logic
+|   |-- Inc/
+|   `-- Src/
+|-- Device/                      # Device drivers: DJI motor, DM4310, N630, BMI088, plotter
+|-- Modules/                     # Reusable algorithms: PID, FIFO, Quaternion EKF
+|-- Middlewares/                 # RT-Thread middleware
+|-- Drivers/                     # STM32 HAL, CMSIS, CMSIS-DSP
+|-- cmake/                       # Toolchain and STM32CubeMX CMake glue
+|-- CMakeLists.txt               # Top-level build script
+|-- CMakePresets.json            # Build presets
+`-- SparkMoveCar.ioc             # STM32CubeMX project configuration
 ```
 
-## 🏗 软件架构
+The project is organized as a typical embedded layered system:
 
-### 1. 启动流程
-项目修改了启动汇编，引导程序先进入 RT-Thread 的 `entry()` 线程进行系统初始化（时钟、外设、调度器），随后自动创建 `main` 线程并跳转至 `Core/Src/app_main.cpp` 中的 `app_main()`。
+- **Core** initializes clocks, GPIO, DMA, CAN, SPI, UART, and RT-Thread related runtime.
+- **Bsp** wraps low-level hardware interfaces into reusable drivers.
+- **Device** implements concrete peripherals and motor protocols.
+- **Modules** keeps controller and math utilities independent from board logic.
+- **App/Chassis** combines SBUS input, kinematic parameters, motor feedback, PID control, and CAN command output.
 
-### 2. 核心特性
-- **C++ 友好**: 支持在嵌入式环境中使用 C++ 类、对象及 STL 模板。
-- **高效串口**: 采用 DMA + 环形缓冲区 (FIFO) + IDLE 中断，确保高频数据收发不丢包。
-- **CAN 通信**: 
-  - 实现了基于过滤器和掩码的 ID 过滤。
-  - 封装了 DJI 和 达妙电机的协议解包与控制指令发送。
-- **控制算法**: 集成了位置/速度串级 PID 控制，支持前馈补偿。
+## 5. Dependencies
 
-## 🔧 开发与构建
+Install the following tools before building:
 
-### 环境依赖
-- [CMake](https://cmake.org/) (>= 3.22)
-- [GNU Arm Embedded Toolchain](https://developer.arm.com/Tools%20and%20Software/GNU%20Toolchain) 或 Clang
-- [Make](https://www.gnu.org/software/make/) 或 [Ninja](https://ninja-build.org/)
+- CMake 3.22 or newer
+- GNU Arm Embedded Toolchain, Arm GNU Toolchain, or compatible Clang ARM toolchain
+- Ninja or Make
+- STM32CubeMX, optional, only needed when regenerating peripheral configuration
+- OpenOCD / ST-LINK Utility / STM32CubeProgrammer, optional, for flashing and debugging
 
-### 编译指令
+The project already contains STM32 HAL, CMSIS, CMSIS-DSP, and RT-Thread source files, so no extra package manager is required for the firmware sources.
+
+## 6. Build
+
+### Configure
+
 ```bash
-mkdir build
-cd build
-cmake .. -G "Unix Makefiles" # 或使用 Ninja
-make -j
+cmake -S . -B build -G Ninja
 ```
 
-## 📝 技术笔记 (摘自 process.md)
+If you prefer Make:
 
-- **RT-Thread 移植**: 解决了 Clang 编译器下 `rt_thread_mdelay()` 在非线程环境下调用的 HardFault 问题。
-- **UART 调试**: 总结了波特率误差（晶振配置）、内存管理及 `static` 关键字在固件优化中的作用。
-- **CAN 总线**: 详细记录了 120Ω 匹配电阻、位填充机制、总线仲裁及总线负载率（建议 <70%）的重要性。
-- **电机控制**: 记录了串级 PID 实现思路及达妙电机特殊的位域打包方式。
+```bash
+cmake -S . -B build -G "Unix Makefiles"
+```
 
-## ⚖ 许可证
+### Compile
 
-该项目遵循 [LICENSE](LICENSE) 文件中所述的开源协议。
+```bash
+cmake --build build -j
+```
 
----
-*Developed by USTC-RoboWalker Team*
+Generated firmware artifacts are produced in the `build/` directory according to the selected toolchain configuration.
+
+## 7. Run On Board
+
+1. Connect the STM32F427 controller to ST-LINK.
+2. Connect CAN bus, SBUS receiver, motor drivers, and 24 V power stage.
+3. Build the firmware.
+4. Flash the generated ELF/HEX/BIN file with your preferred STM32 flashing tool.
+5. Power-cycle the chassis and verify that CAN feedback, SBUS input, and motor output behave as expected.
+
+Recommended bring-up order:
+
+1. Verify board power and LED state.
+2. Verify UART debug output.
+3. Verify SBUS channel values.
+4. Verify CAN feedback frames without enabling high current.
+5. Enable motor control with a current limit and lifted wheels.
+6. Tune PID parameters after confirming wheel direction.
+
+## 8. Chassis Control
+
+The chassis module uses SBUS channels to generate motion commands:
+
+| SBUS channel | Meaning |
+| --- | --- |
+| CH1 | yaw / steering related input |
+| CH2 | forward and backward velocity command |
+| CH4 | steering angle command |
+| CH8 | emergency stop switch |
+
+Main interfaces:
+
+```c
+void ChassisMotor_InitAll(void);
+void ChassisMotor_CANRxDispatch(Struct_CAN_Rx_Buffer *rx_buffer);
+void ChassisMotor_SetWheelTargetRpm(ChassisWheel_e wheel, float wheel_rpm);
+void ChassisMotor_SetChassisSpeed(float vx_mps, float wz_radps);
+void ChassisMotor_UpdateFromSbusChannels(const uint16_t channels[CHASSIS_SBUS_CH_COUNT]);
+void ChassisMotor_ControlLoop(void);
+void ChassisMotor_SendAllCurrent(void);
+```
+
+The current main loop calls `ChassisMotor_ControlLoop()` periodically after peripheral and motor initialization.
+
+## 9. Development Notes
+
+- Keep CubeMX generated files under `Core/`, `Drivers/`, and `cmake/stm32cubemx/` consistent with `SparkMoveCar.ioc`.
+- The project enables `-Werror`; warning-free builds are required.
+- Some `.c` files can be compiled as C++ through CMake when they need C++ linkage compatibility.
+- Use current limits and lifted wheels during early motor tests.
+- Keep CAN bus termination at 120 ohm on both ends of the bus.
+- Keep CAN bus load below a practical safety margin during high-rate motor feedback tests.
+
+## 10. Related Documents
+
+- Development notes: `.doc/process.md`
+- License: `LICENSE`
+
+## 11. Acknowledgements
+
+SparkMoveCar is developed for robot chassis control experiments and competition-oriented embedded development.
+
+Thanks to:
+
+- RT-Thread
+- STMicroelectronics STM32 HAL / CMSIS
+- DJI RoboMaster motor ecosystem
+- USTC RoboWalker Team
+
+## 12. License
+
+This project follows the license described in `LICENSE`.
