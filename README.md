@@ -1,6 +1,6 @@
 # SparkMoveCar
 
-![SparkMoveCar hardware](docs/spark_move_car.jpg)
+![SparkMoveCar hardware](https://r2.image-upload.app/tyImg/ElSpAOLd.png)
 
 SparkMoveCar is a STM32F427 based mobile robot chassis control project. It targets a six-wheel rover-style platform with CAN motor control, SBUS remote input, UART debugging, RT-Thread Nano scheduling, and C/C++ mixed embedded development.
 
