@@ -180,6 +180,40 @@ ChassisMotor_t ChassisMotor_Table[CHASSIS_MOTOR_COUNT] = {
         .pid_kf = 5.0f,
         .pid_max_integral = 1200.0f,
     },
+        // 中间的两个电机轮
+   {
+        .wheel = CHASSIS_WHEEL_RM,
+        .type = CHASSIS_MOTOR_TYPE_VESC,
+        .hcan = &hcan1,
+        .vesc_id = 23,
+        .feedback_to_wheel_rpm = 1.0f / (CHASSIS_VESC_POLE_PAIRS * CHASSIS_VESC_GEAR_RATIO),
+        .command_direction = 1.0f,
+        .current_limit = CHASSIS_VESC_CURRENT_LIMIT_A,
+
+        // VESC PID output uint: ampere(A)
+        .pid_kp = 0.04f,
+        .pid_ki = 0.001f,
+        .pid_kd = 0.0f,
+        .pid_kf = 0.0f,
+        .pid_max_integral = 10.0f,
+    },
+
+    {
+        .wheel = CHASSIS_WHEEL_LM,
+        .type = CHASSIS_MOTOR_TYPE_VESC,
+        .hcan = &hcan2,
+        .vesc_id = 25,
+        .feedback_to_wheel_rpm = 1.0f / (CHASSIS_VESC_POLE_PAIRS * CHASSIS_VESC_GEAR_RATIO),
+        .command_direction = 1.0f,
+        .current_limit = CHASSIS_VESC_CURRENT_LIMIT_A,
+
+        // VESC PID output uint: ampere(A)
+        .pid_kp = 0.04f,
+        .pid_ki = 0.001f,
+        .pid_kd = 0.0f,
+        .pid_kf = 0.0f,
+        .pid_max_integral = 10.0f,
+    },
 };
 
 // 初始化所有电机的PID参数和状态  Initialize PID parameters and state for all motors
@@ -279,20 +313,22 @@ void ChassisMotor_SetChassisSpeed(float vx_mps, float wz_radps)
     ChassisMotor_SetWheelTargetRpm(CHASSIS_WHEEL_LB, left_wheels_rpm);
     ChassisMotor_SetWheelTargetRpm(CHASSIS_WHEEL_RF, right_wheels_rpm);
     ChassisMotor_SetWheelTargetRpm(CHASSIS_WHEEL_RB, right_wheels_rpm);
+    ChassisMotor_SetWheelTargetRpm(CHASSIS_WHEEL_LM, left_wheels_rpm);
+    ChassisMotor_SetWheelTargetRpm(CHASSIS_WHEEL_RM, right_wheels_rpm);
 }
 
 // 设置底盘的阿克曼转向角度  Set the Ackermann steering angle for the chassis
 void ChassisMotor_SetAckermann(float vx_mps, float dm_radps)
 {
-    float v_fl, v_fr, v_rl, v_rr; // 四轮线速度 (m/s)
+    float v_fl, v_fr, v_rl, v_rr, v_ml, v_mr; // 六轮线速度 (m/s)
     float radps_l, radps_r;       // 左右前轮转向角 (rad)
 
    // 直线形式 Straight line case
     if (fabs(dm_radps) < 0.10f) {
-        v_fl = v_fr = v_rl = v_rr = vx_mps;
+        v_fl = v_fr = v_rl = v_rr = v_ml = v_mr = vx_mps;
         radps_l = radps_r = 0.0f;
-        pos_speed_ctrl(&hcan2, MOTOR_LEFT_CANID, 0, 0.5f);
-        pos_speed_ctrl(&hcan2, MOTOR_RIGHT_CANID, 0, 0.5f);
+        pos_speed_ctrl(&hcan2, MOTOR_LEFT_CANID, 0, 0.8f);
+        pos_speed_ctrl(&hcan2, MOTOR_RIGHT_CANID, 0, 0.8f);
     } 
     // 阿克曼转向解算
     else {
@@ -312,6 +348,10 @@ void ChassisMotor_SetAckermann(float vx_mps, float dm_radps)
         // 后轮公式：v = w * (R ± W/2)
         v_rl = w * (R - CHASSIS_TRACK_WIDTH_M / 2.0f);
         v_rr = w * (R + CHASSIS_TRACK_WIDTH_M / 2.0f);
+
+        // 中间轮速度取后轮速度 Middle wheel speed takes the rear wheel speed
+        v_ml = v_rl;
+        v_mr = v_rr;
         
         // 前轮公式：v = w * sqrt(L^2 + (R ± W/2)^2)
         float sign = (vx_mps >= 0) ? 1.0f : -1.0f;
@@ -328,10 +368,12 @@ void ChassisMotor_SetAckermann(float vx_mps, float dm_radps)
     ChassisMotor_SetWheelTargetRpm(CHASSIS_WHEEL_RF, v_fr * mps_to_rpm);
     ChassisMotor_SetWheelTargetRpm(CHASSIS_WHEEL_LB, v_rl * mps_to_rpm);
     ChassisMotor_SetWheelTargetRpm(CHASSIS_WHEEL_RB, v_rr * mps_to_rpm);
+    ChassisMotor_SetWheelTargetRpm(CHASSIS_WHEEL_LM, v_ml * mps_to_rpm);
+    ChassisMotor_SetWheelTargetRpm(CHASSIS_WHEEL_RM, v_mr * mps_to_rpm);
 
     // DM4310 电机的转向控制  Steering control for DM4310 motors
-    pos_speed_ctrl(&hcan2, MOTOR_LEFT_CANID, radps_l, 0.5f);
-    pos_speed_ctrl(&hcan2, MOTOR_RIGHT_CANID, radps_r, 0.5f);
+    pos_speed_ctrl(&hcan2, MOTOR_LEFT_CANID, radps_l, 0.8f);
+    pos_speed_ctrl(&hcan2, MOTOR_RIGHT_CANID, radps_r, 0.8f);
 }
 
 // 根据遥控器输入更新底盘速度命令 Update chassis speed commands based on remote control input
@@ -407,7 +449,7 @@ void ChassisMotor_SendCurrent(ChassisMotor_t *motor)
 
     // VESC 电机直接通过专用函数发送电流命令，C620 电机需要打包成 CAN 数据帧发送  VESC motors send current commands directly through a dedicated function, while C620 motors need to be packed into CAN data frames for sending
     if (motor->type == CHASSIS_MOTOR_TYPE_VESC) {
-        comm_can_set_current(motor->vesc_id,
+        comm_can_set_current(motor->hcan, motor->vesc_id,
                              motor->current_cmd * motor->command_direction);
         return;
     }

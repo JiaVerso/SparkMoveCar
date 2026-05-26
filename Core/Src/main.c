@@ -145,7 +145,8 @@ void Motor_Cmd_TxCallback(Struct_CAN_Rx_Buffer *Rx_Buffer) {
 }
 
 void DMotor_Cmd_TxCallback(Struct_CAN_Rx_Buffer *Rx_Buffer) {
-  // 解析 DM-J4310 的反馈
+  // 解析 DM-J4310 的反馈 
+  ChassisMotor_CANRxDispatch(Rx_Buffer);
 }
 
 void UART8_Send_To_Plotter_DMA(uint8_t *data, uint16_t len) {
@@ -213,7 +214,7 @@ int main(void)
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
 
-  BSP_Init(BSP_DC_LU_ON | BSP_DC_LD_ON | BSP_DC_RU_ON | BSP_DC_RD_ON | BSP_LED_RED_ON, 0, 0);
+  BSP_Init(BSP_DC_LU_ON | BSP_DC_LD_ON | BSP_DC_RU_ON | BSP_DC_RD_ON | BSP_LED_GREEN_ON, 0, 0);
   
   Uart_Init(&huart1, sbus_dma_buf, 25, Serialplot_Call_Back);
   Uart_Init(&huart8, rx_buffer, RX_BUF_SIZE, Serialplot8_Call_Back);
@@ -231,6 +232,7 @@ int main(void)
   CAN_Init(&hcan1, Motor_Cmd_TxCallback);
 
   CAN_Filter_Mask_Config(&hcan2, CAN_FILTER(27) | CAN_FIFO_0 | CAN_STDID | CAN_DATA_TYPE, 0, 0);
+  CAN_Filter_Ext_Mask_Config(&hcan2, 26, 0, 0, CAN_FILTER_FIFO1);
   CAN_Init(&hcan2, DMotor_Cmd_TxCallback);
   
   dm4310_motor_init(&hcan2, &motor[Motor1], MOTOR_LEFT_CANID, 1);

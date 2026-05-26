@@ -84,3 +84,5 @@ cubemx步骤：时钟，串口全局使能（异步通信），不然没发进�
  4. 指针变量访问内部成员使用-> ， 数组变量访问内部成员使用 . 。 ChassisMotor_t *motor_ptr;(motor_ptr->c620_motor)  ChassisMotor_t motor;(motor.c620_motor)
  5. can1内部只有3个mailbox，当我同时发送四帧can帧数据，刚好前三帧把mailbox填满，如果第四帧调用mailbox时，前面三帧还没有发送完毕就会busy
  6. 线性归一化其实是为了解耦，不同遥控器输入值不一样，364~1800或者200~1600 ，只需要归一化到{-1,1}然后去乘物理极限速度就可以
+ ## adc采集电压
+1. modbus协议，非隔离485通信！！！ 

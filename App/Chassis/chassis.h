@@ -24,10 +24,10 @@
 extern "C" {
 #endif
 
-#define ALL_MOTORS 0x00
+#define ALL_MOTORS 0x01
 #define ALL_MOTOR_COUNT 6U
 
-#define CHASSIS_MOTOR_COUNT 4U
+#define CHASSIS_MOTOR_COUNT 6U
 
 // 遥控输入通道数量  Number of remote control input channels
 #define CHASSIS_SBUS_CH_COUNT 8U
@@ -55,7 +55,7 @@ extern "C" {
 // 轮子直径 Wheel diameter 6inch = 0.1524m
 #define CHASSIS_WHEEL_DIAMETER_M 0.1524f
 // 轴距，前后轮中心之间的距离 Wheelbase, the distance between the centers of the front and rear wheels
-#define CHASSIS_WHEELBASE_M      0.600f
+#define CHASSIS_WHEELBASE_M      0.420f
 // 轮距，左右轮中心之间的距离 Track width, the distance between the centers of the left and right wheels
 #define CHASSIS_TRACK_WIDTH_M    0.585f
 // 最大转向角，单位是弧度 Maximum steering angle in radians
@@ -67,7 +67,7 @@ extern "C" {
 #define CHASSIS_C620_GEAR_RATIO  19.203f
 
 // 电流限制 Current limits
-#define CHASSIS_VESC_CURRENT_LIMIT_A  5.0f
+#define CHASSIS_VESC_CURRENT_LIMIT_A  7.0f
 // C620电机的电流限制，单位是mA  Current limit for C620 motors, in mA
 #define CHASSIS_C620_CURRENT_LIMIT    5000.0f
 
@@ -78,8 +78,8 @@ typedef enum {
     CHASSIS_WHEEL_LB,
     CHASSIS_WHEEL_RB,
 #if ALL_MOTORS
-    CHASSIS_WHEEL_LM,
     CHASSIS_WHEEL_RM,
+    CHASSIS_WHEEL_LM,
 #endif
 } ChassisWheel_e;
 
