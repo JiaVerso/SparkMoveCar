@@ -121,15 +121,15 @@ ChassisMotor_t ChassisMotor_Table[CHASSIS_MOTOR_COUNT] = {
 
         // 将电机反馈的转速转换成轮子转速的比例系数  The ratio coefficient to convert the motor feedback speed into wheel speed
         .feedback_to_wheel_rpm = 1.0f / (CHASSIS_VESC_POLE_PAIRS * CHASSIS_VESC_GEAR_RATIO),
-        .command_direction = -1.0f,
+        .command_direction = 1.0f,
         .current_limit = CHASSIS_VESC_CURRENT_LIMIT_A,
           
         // VESC PID output uint: ampere(A)
-        .pid_kp = 0.04f,
+        .pid_kp = 0.06f,
         .pid_ki = 0.001f,
         .pid_kd = 0.0f,
-        .pid_kf = 0.0f,
-        .pid_max_integral = 10.0f,
+        .pid_kf = 0.05f,
+        .pid_max_integral = 2.0f,
     },
     {
         .wheel = CHASSIS_WHEEL_RF,
@@ -137,31 +137,31 @@ ChassisMotor_t ChassisMotor_Table[CHASSIS_MOTOR_COUNT] = {
         .hcan = &hcan1,
         .vesc_id = 21,
         .feedback_to_wheel_rpm = 1.0f / (CHASSIS_VESC_POLE_PAIRS * CHASSIS_VESC_GEAR_RATIO),
-        .command_direction = 1.0f,
+        .command_direction = -1.0f,
         .current_limit = CHASSIS_VESC_CURRENT_LIMIT_A,
           
         // VESC PID output uint: ampere(A)
-        .pid_kp = 0.04f,
+        .pid_kp = 0.06f,
         .pid_ki = 0.001f,
         .pid_kd = 0.0f,
-        .pid_kf = 0.0f,
-        .pid_max_integral = 10.0f,
+        .pid_kf = 0.05f,
+        .pid_max_integral = 2.0f,
     },
     {
         .wheel = CHASSIS_WHEEL_LB,
         .type = CHASSIS_MOTOR_TYPE_VESC,
         .hcan = &hcan1,
-        .vesc_id = 24,
+        .vesc_id = 26,
         .feedback_to_wheel_rpm = 1.0f / (CHASSIS_VESC_POLE_PAIRS * CHASSIS_VESC_GEAR_RATIO),
-        .command_direction = -1.0f,
+        .command_direction = 1.0f,
         .current_limit = CHASSIS_VESC_CURRENT_LIMIT_A,
 
         // VESC PID output uint: ampere(A)
-        .pid_kp = 0.04f,
+        .pid_kp = 0.06f,
         .pid_ki = 0.001f,
         .pid_kd = 0.0f,
-        .pid_kf = 0.0f,
-        .pid_max_integral = 10.0f,
+        .pid_kf = 0.05f,
+        .pid_max_integral = 2.0f,
     },
     {
         .wheel = CHASSIS_WHEEL_RB,
@@ -171,31 +171,32 @@ ChassisMotor_t ChassisMotor_Table[CHASSIS_MOTOR_COUNT] = {
         .c620_tx_id = 0x200,
         .c620_tx_slot = 1,
         .feedback_to_wheel_rpm = 1.0f / CHASSIS_C620_GEAR_RATIO,
-        .command_direction = 1.0f,
+        .command_direction = -1.0f,
         .current_limit = CHASSIS_C620_CURRENT_LIMIT,
         // C620 PID output unit: DJI current command raw value, in the range of [-65535, 65535], corresponding to [-max_current, max_current]
-        .pid_kp = 30.0f,
+        .pid_kp = 50.0f,
         .pid_ki = 0.2f,
         .pid_kd = 0.0f,
-        .pid_kf = 5.0f,
+        .pid_kf = 2.0f,
         .pid_max_integral = 1200.0f,
     },
         // 中间的两个电机轮
    {
         .wheel = CHASSIS_WHEEL_RM,
-        .type = CHASSIS_MOTOR_TYPE_VESC,
+        .type = CHASSIS_MOTOR_TYPE_C620,
         .hcan = &hcan1,
-        .vesc_id = 23,
-        .feedback_to_wheel_rpm = 1.0f / (CHASSIS_VESC_POLE_PAIRS * CHASSIS_VESC_GEAR_RATIO),
-        .command_direction = 1.0f,
-        .current_limit = CHASSIS_VESC_CURRENT_LIMIT_A,
-
-        // VESC PID output uint: ampere(A)
-        .pid_kp = 0.04f,
-        .pid_ki = 0.001f,
+        .c620_rx_id = 0x201,
+        .c620_tx_id = 0x200,
+        .c620_tx_slot = 0,
+        .feedback_to_wheel_rpm = 1.0f / CHASSIS_C620_GEAR_RATIO,
+        .command_direction = -1.0f,
+        .current_limit = CHASSIS_C620_CURRENT_LIMIT,
+        // C620 PID output unit: DJI current command raw value, in the range of [-65535, 65535], corresponding to [-max_current, max_current]
+        .pid_kp = 50.0f,
+        .pid_ki = 0.2f,
         .pid_kd = 0.0f,
-        .pid_kf = 0.0f,
-        .pid_max_integral = 10.0f,
+        .pid_kf = 2.0f,
+        .pid_max_integral = 1200.0f,
     },
 
     {
@@ -204,15 +205,15 @@ ChassisMotor_t ChassisMotor_Table[CHASSIS_MOTOR_COUNT] = {
         .hcan = &hcan2,
         .vesc_id = 25,
         .feedback_to_wheel_rpm = 1.0f / (CHASSIS_VESC_POLE_PAIRS * CHASSIS_VESC_GEAR_RATIO),
-        .command_direction = 1.0f,
+        .command_direction = -1.0f,
         .current_limit = CHASSIS_VESC_CURRENT_LIMIT_A,
 
         // VESC PID output uint: ampere(A)
-        .pid_kp = 0.04f,
+        .pid_kp = 0.06f,
         .pid_ki = 0.001f,
         .pid_kd = 0.0f,
-        .pid_kf = 0.0f,
-        .pid_max_integral = 10.0f,
+        .pid_kf = 0.05f,
+        .pid_max_integral = 2.0f,
     },
 };
 
@@ -372,8 +373,8 @@ void ChassisMotor_SetAckermann(float vx_mps, float dm_radps)
     ChassisMotor_SetWheelTargetRpm(CHASSIS_WHEEL_RM, v_mr * mps_to_rpm);
 
     // DM4310 电机的转向控制  Steering control for DM4310 motors
-    pos_speed_ctrl(&hcan2, MOTOR_LEFT_CANID, radps_l, 0.8f);
-    pos_speed_ctrl(&hcan2, MOTOR_RIGHT_CANID, radps_r, 0.8f);
+    pos_speed_ctrl(&hcan2, MOTOR_LEFT_CANID, radps_l, 1.0f);
+    pos_speed_ctrl(&hcan2, MOTOR_RIGHT_CANID, radps_r, 1.0f);
 }
 
 // 根据遥控器输入更新底盘速度命令 Update chassis speed commands based on remote control input
@@ -381,15 +382,17 @@ void ChassisMotor_UpdateFromSbusChannels(const uint16_t channels[CHASSIS_SBUS_CH
 {
     float vx_cmd;
     float radps_cmd;
+    // float wz_cmd;
 
     if (channels == NULL) {
-        ChassisMotor_SetChassisSpeed(0.0f, 0.0f);
+        ChassisMotor_SetAckermann(0.0f, 0.0f);
         return;
     }
 
     // 对遥控器输入进行线性化处理，目的是解耦 
     vx_cmd = ChassisMotor_NormalizeChannel(channels[CHASSIS_SBUS_VX_CH]) * CHASSIS_MAX_VX_MPS;
     radps_cmd = ChassisMotor_NormalizeSteerChannel(channels[CHASSIS_SBUS_DM_RADPS_CH]) * CHASSIS_MAX_STEER_RAD;
+    // wz_cmd = ChassisMotor_NormalizeChannel(channels[CHASSIS_SBUS_WZ_CH]) * CHASSIS_MAX_WZ_RADPS;
 
     ChassisMotor_SetAckermann(vx_cmd, radps_cmd);
 }
@@ -448,11 +451,14 @@ void ChassisMotor_SendCurrent(ChassisMotor_t *motor)
     }
 
     // VESC 电机直接通过专用函数发送电流命令，C620 电机需要打包成 CAN 数据帧发送  VESC motors send current commands directly through a dedicated function, while C620 motors need to be packed into CAN data frames for sending
-    if (motor->type == CHASSIS_MOTOR_TYPE_VESC) {
-        comm_can_set_current(motor->hcan, motor->vesc_id,
+   if (motor->type == CHASSIS_MOTOR_TYPE_VESC) {
+    if (HAL_CAN_GetTxMailboxesFreeLevel(motor->hcan) > 0U) {
+        comm_can_set_current(motor->hcan,
+                             motor->vesc_id,
                              motor->current_cmd * motor->command_direction);
-        return;
     }
+    return;
+}
 
     c620_current = (int16_t)ChassisMotor_Clamp(motor->current_cmd * motor->command_direction,
                                              motor->current_limit);
@@ -515,12 +521,11 @@ void ChassisMotor_SendAllCurrent_Section(void) {
   uint8_t send_can1_0x200 = 0U;
   uint8_t send_can1_0x1ff = 0U;
 
-  // 目前只适用于 4 个电机底盘，并且3个拓展帧，一个标准帧
 for (uint32_t i = 0; i < CHASSIS_MOTOR_COUNT; i++) {
     ChassisMotor_t *motor = &ChassisMotor_Table[i];
 
      if (motor->type != CHASSIS_MOTOR_TYPE_C620) {
-    continue;
+        continue;
     }
 
     int16_t current = (int16_t)ChassisMotor_Clamp(
@@ -551,17 +556,25 @@ for (uint32_t i = 0; i < CHASSIS_MOTOR_COUNT; i++) {
       CAN_Send_Data(&hcan1, 0x1FF, can1_0x1ff_data, 8);
     }
 
-    for (uint32_t n = 0U; n < CHASSIS_MOTOR_COUNT; n++) {
-         static uint32_t send_index = 0U;
-         static uint32_t j;
-         j = (send_index + n) % CHASSIS_MOTOR_COUNT;
-         ChassisMotor_t *motor = &ChassisMotor_Table[j];
-         send_index = (send_index + 1U) % CHASSIS_MOTOR_COUNT;
-         if (motor->type == CHASSIS_MOTOR_TYPE_VESC) {
-                ChassisMotor_SendCurrent(motor);
-            }
-             break;
+//   for (uint32_t i = 0U; i < CHASSIS_MOTOR_COUNT; i++) {
+//     ChassisMotor_t *motor = &ChassisMotor_Table[i];
+
+//     if (motor->type == CHASSIS_MOTOR_TYPE_VESC) {
+//         ChassisMotor_SendCurrent(motor);
+//     }
+// }
+static uint32_t send_index = 0U;
+
+for (uint32_t n = 0U; n < CHASSIS_MOTOR_COUNT; n++) {
+    uint32_t j = (send_index + n) % CHASSIS_MOTOR_COUNT;
+    ChassisMotor_t *motor = &ChassisMotor_Table[j];
+
+    if (motor->type == CHASSIS_MOTOR_TYPE_VESC) {
+        ChassisMotor_SendCurrent(motor);
+        send_index = (j + 1U) % CHASSIS_MOTOR_COUNT;
+        break;
     }
+}
 
   
 }

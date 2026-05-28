@@ -55,11 +55,11 @@ extern "C" {
 // 轮子直径 Wheel diameter 6inch = 0.1524m
 #define CHASSIS_WHEEL_DIAMETER_M 0.1524f
 // 轴距，前后轮中心之间的距离 Wheelbase, the distance between the centers of the front and rear wheels
-#define CHASSIS_WHEELBASE_M      0.420f
+#define CHASSIS_WHEELBASE_M      0.600f
 // 轮距，左右轮中心之间的距离 Track width, the distance between the centers of the left and right wheels
-#define CHASSIS_TRACK_WIDTH_M    0.585f
+#define CHASSIS_TRACK_WIDTH_M    0.490f
 // 最大转向角，单位是弧度 Maximum steering angle in radians
-#define CHASSIS_MAX_STEER_RAD    0.500f
+#define CHASSIS_MAX_STEER_RAD    0.400f
 
 #define CHASSIS_VESC_POLE_PAIRS  7.0f
 // VESC的减速比，电机转速 / 轮子转速  The gear ratio for VESC, motor speed / wheel speed
@@ -67,7 +67,7 @@ extern "C" {
 #define CHASSIS_C620_GEAR_RATIO  19.203f
 
 // 电流限制 Current limits
-#define CHASSIS_VESC_CURRENT_LIMIT_A  7.0f
+#define CHASSIS_VESC_CURRENT_LIMIT_A  6.0f
 // C620电机的电流限制，单位是mA  Current limit for C620 motors, in mA
 #define CHASSIS_C620_CURRENT_LIMIT    5000.0f
 
