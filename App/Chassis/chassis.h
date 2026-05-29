@@ -42,8 +42,8 @@ extern "C" {
 #define CHASSIS_SBUS_DEADBAND 0.10f
 
 // 底盘最大速度限制  Maximum speed limits for the chassis
-#define CHASSIS_MAX_VX_MPS      1.0f
-#define CHASSIS_MAX_WZ_RADPS    1.0f
+#define CHASSIS_MAX_VX_MPS      0.75f
+#define CHASSIS_MAX_WZ_RADPS    0.75f
 
 // Ackermann转向控制参数 Ackermann steering control parameters·
 #define CHASSIS_SBUS_STEER_MIN     200U
@@ -56,8 +56,10 @@ extern "C" {
 #define CHASSIS_WHEEL_DIAMETER_M 0.1524f
 // 轴距，前后轮中心之间的距离 Wheelbase, the distance between the centers of the front and rear wheels
 #define CHASSIS_WHEELBASE_M      0.600f
-// 轮距，左右轮中心之间的距离 Track width, the distance between the centers of the left and right wheels
-#define CHASSIS_TRACK_WIDTH_M    0.490f
+// 前后轮轮距，左右轮中心之间的距离 Track width, the distance between the centers of the left and right wheels
+#define CHASSIS_TRACK_WIDTH_M    0.500f
+// 中间轮轮距
+#define CHASSIS_MID_TRACK_WIDTH_M 0.600f
 // 最大转向角，单位是弧度 Maximum steering angle in radians
 #define CHASSIS_MAX_STEER_RAD    0.400f
 
@@ -67,9 +69,11 @@ extern "C" {
 #define CHASSIS_C620_GEAR_RATIO  19.203f
 
 // 电流限制 Current limits
-#define CHASSIS_VESC_CURRENT_LIMIT_A  6.0f
+#define CHASSIS_VESC_CURRENT_LIMIT_A  10.0f
 // C620电机的电流限制，单位是mA  Current limit for C620 motors, in mA
-#define CHASSIS_C620_CURRENT_LIMIT    5000.0f
+#define CHASSIS_C620_CURRENT_LIMIT    6000.0f
+// 斜坡启动限制 Ramp-up limit for target speed changes, in RPM per control loop
+#define CHASSIS_TARGET_RPM_STEP 0.5f
 
 // 电机类型枚举  Motor type enumeration
 typedef enum {
@@ -123,6 +127,7 @@ typedef struct {
     PID_t speed_pid;
 
     // 反馈的轮子转速  Feedback wheel speed
+    float sbus_wheel_rpm;
     float target_wheel_rpm;
     float feedback_wheel_rpm;
     float current_cmd;
@@ -136,6 +141,8 @@ void ChassisMotor_CANRxDispatch(Struct_CAN_Rx_Buffer *rx_buffer);
 float ChassisMotor_GetFeedbackRpm(ChassisWheel_e wheel);
 void ChassisMotor_SetWheelTargetRpm(ChassisWheel_e wheel, float wheel_rpm);
 void ChassisMotor_SetChassisSpeed(float vx_mps, float wz_radps);
+void ChassisMotor_SetAckermann(float vx_mps, float dm_radps);
+void ChassisMotor_EmergencyStop(void);
 void ChassisMotor_UpdateFromSbusChannels(const uint16_t channels[CHASSIS_SBUS_CH_COUNT]);
 
 void ChassisMotor_ControlLoop(void);

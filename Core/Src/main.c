@@ -306,49 +306,49 @@ int main(void)
     // pos_speed_ctrl(&hcan2, MOTOR_LEFT_CANID, 0.0f, 1.0f);
     // pos_speed_ctrl(&hcan2, MOTOR_RIGHT_CANID, 0.0f, 1.0f);
 
-    Plotter_Begin(&my_plotter);
-    Plotter_Append(&my_plotter, ChassisMotor_Table[0].target_wheel_rpm);
-    Plotter_Append(&my_plotter, ChassisMotor_Table[0].feedback_wheel_rpm);
-    Plotter_Append(&my_plotter, ChassisMotor_Table[0].current_cmd);
+    // Plotter_Begin(&my_plotter);
+    // Plotter_Append(&my_plotter, ChassisMotor_Table[0].target_wheel_rpm);
+    // Plotter_Append(&my_plotter, ChassisMotor_Table[0].feedback_wheel_rpm);
+    // Plotter_Append(&my_plotter, ChassisMotor_Table[0].current_cmd);
 
-    Plotter_Append(&my_plotter, ChassisMotor_Table[1].target_wheel_rpm);
-    Plotter_Append(&my_plotter, ChassisMotor_Table[1].feedback_wheel_rpm);
-    Plotter_Append(&my_plotter, ChassisMotor_Table[1].current_cmd);
+    // Plotter_Append(&my_plotter, ChassisMotor_Table[1].target_wheel_rpm);
+    // Plotter_Append(&my_plotter, ChassisMotor_Table[1].feedback_wheel_rpm);
+    // Plotter_Append(&my_plotter, ChassisMotor_Table[1].current_cmd);
 
-    Plotter_Append(&my_plotter, ChassisMotor_Table[2].target_wheel_rpm);
-    Plotter_Append(&my_plotter, ChassisMotor_Table[2].feedback_wheel_rpm);
-    Plotter_Append(&my_plotter, ChassisMotor_Table[2].current_cmd);
+    // Plotter_Append(&my_plotter, ChassisMotor_Table[2].target_wheel_rpm);
+    // Plotter_Append(&my_plotter, ChassisMotor_Table[2].feedback_wheel_rpm);
+    // Plotter_Append(&my_plotter, ChassisMotor_Table[2].current_cmd);
 
-    Plotter_Append(&my_plotter, ChassisMotor_Table[3].target_wheel_rpm);
-    Plotter_Append(&my_plotter, ChassisMotor_Table[3].feedback_wheel_rpm);
-    Plotter_Append(&my_plotter, ChassisMotor_Table[3].current_cmd);
+    // Plotter_Append(&my_plotter, ChassisMotor_Table[3].target_wheel_rpm);
+    // Plotter_Append(&my_plotter, ChassisMotor_Table[3].feedback_wheel_rpm);
+    // Plotter_Append(&my_plotter, ChassisMotor_Table[3].current_cmd);
 
-    Plotter_Append(&my_plotter, ChassisMotor_Table[4].target_wheel_rpm);
-    Plotter_Append(&my_plotter, ChassisMotor_Table[4].feedback_wheel_rpm);
-    Plotter_Append(&my_plotter, ChassisMotor_Table[4].current_cmd);
+    // Plotter_Append(&my_plotter, ChassisMotor_Table[4].target_wheel_rpm);
+    // Plotter_Append(&my_plotter, ChassisMotor_Table[4].feedback_wheel_rpm);
+    // Plotter_Append(&my_plotter, ChassisMotor_Table[4].current_cmd);
 
-    Plotter_Append(&my_plotter, ChassisMotor_Table[5].target_wheel_rpm);
-    Plotter_Append(&my_plotter, ChassisMotor_Table[5].feedback_wheel_rpm);
-    Plotter_Append(&my_plotter, ChassisMotor_Table[5].current_cmd);
-    static uint32_t counter = 0;
-    if(counter++ % 500 == 0) {
-         char msg[256];
-        // 发送SBUS数据到串口，方便调试和监控  Send SBUS data to the serial port for debugging and monitoring
-        // 这里是CH1~CH8的数据，便于调试添加命名
-        int len = snprintf(msg, sizeof(msg),
-                   "1_T:%ld 1_R:%ld 2_T:%ld 2_R:%ld 3_T:%ld 3_R:%ld\r\n 3_C:%ld 3_rpm:%ld 5_T:%ld 5_R:%ld 6_T:%ld 6_R:%ld\r\n",
-                   (long)ChassisMotor_Table[0].target_wheel_rpm, (long)ChassisMotor_Table[0].feedback_wheel_rpm, 
-                   (long)ChassisMotor_Table[1].target_wheel_rpm, (long)ChassisMotor_Table[1].feedback_wheel_rpm, 
-                   (long)ChassisMotor_Table[2].target_wheel_rpm, (long)ChassisMotor_Table[2].feedback_wheel_rpm, 
-                   (long)ChassisMotor_Table[2].current_cmd, (long)n630_motor[26].rpm,
-                   (long)ChassisMotor_Table[4].target_wheel_rpm, (long)ChassisMotor_Table[4].feedback_wheel_rpm,
-                   (long)ChassisMotor_Table[5].target_wheel_rpm, (long)ChassisMotor_Table[5].feedback_wheel_rpm);
+    // Plotter_Append(&my_plotter, ChassisMotor_Table[5].target_wheel_rpm);
+    // Plotter_Append(&my_plotter, ChassisMotor_Table[5].feedback_wheel_rpm);
+    // Plotter_Append(&my_plotter, ChassisMotor_Table[5].current_cmd);
+    // static uint32_t counter = 0;
+    // if(counter++ % 500 == 0) {
+    //      char msg[256];
+    //     // 发送SBUS数据到串口，方便调试和监控  Send SBUS data to the serial port for debugging and monitoring
+    //     // 这里是CH1~CH8的数据，便于调试添加命名
+    //     int len = snprintf(msg, sizeof(msg),
+    //                "1_T:%ld 1_R:%ld 1_C:%ld\r\n 2_T:%ld 2_R:%ld 2_C:%ld\r\n 3_T:%ld 3_R:%ld 3_C:%ld\r\n 4_T:%ld 4_R:%ld 4_C:%ld\r\n 5_T:%ld 5_R:%ld 5_C:%ld\r\n 6_T:%ld 6_R:%ld 6_C:%ld\r\n",
+    //                (long)ChassisMotor_Table[0].target_wheel_rpm, (long)ChassisMotor_Table[0].feedback_wheel_rpm, (long)ChassisMotor_Table[0].current_cmd,
+    //                (long)ChassisMotor_Table[1].target_wheel_rpm, (long)ChassisMotor_Table[1].feedback_wheel_rpm, (long)ChassisMotor_Table[1].current_cmd,
+    //                (long)ChassisMotor_Table[2].target_wheel_rpm, (long)ChassisMotor_Table[2].feedback_wheel_rpm, (long)ChassisMotor_Table[2].current_cmd,
+    //                (long)ChassisMotor_Table[3].target_wheel_rpm, (long)ChassisMotor_Table[3].feedback_wheel_rpm, (long)ChassisMotor_Table[3].current_cmd,
+    //                (long)ChassisMotor_Table[4].target_wheel_rpm, (long)ChassisMotor_Table[4].feedback_wheel_rpm, (long)ChassisMotor_Table[4].current_cmd,
+    //                (long)ChassisMotor_Table[5].target_wheel_rpm, (long)ChassisMotor_Table[5].feedback_wheel_rpm, (long)ChassisMotor_Table[5].current_cmd);
 
-        UART_Send_Data(&huart8, (uint8_t *)msg, len);
-        counter = 0;
-    }
+    //     UART_Send_Data(&huart8, (uint8_t *)msg, len);
+    //     counter = 0;
+    // }
 
-    Plotter_SendData(&my_plotter);
+    // Plotter_SendData(&my_plotter);
 
     HAL_Delay(1);
   }

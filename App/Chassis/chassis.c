@@ -74,6 +74,19 @@ static float ChassisMotor_NormalizeSteerChannel(uint16_t channel)
     }
 }
 
+static void ChassisMotor_UpdateTargetRpm(ChassisMotor_t *motor)
+{
+    float delta = motor->sbus_wheel_rpm - motor->target_wheel_rpm;
+
+    if (delta > CHASSIS_TARGET_RPM_STEP) {
+        delta = CHASSIS_TARGET_RPM_STEP;
+    } else if (delta < -CHASSIS_TARGET_RPM_STEP) {
+        delta = -CHASSIS_TARGET_RPM_STEP;
+    }
+
+    motor->target_wheel_rpm += delta;
+}
+
 // 根据轮子枚举查找对应的电机控制结构体指针  Find the corresponding motor control structure pointer based on the wheel enumeration
 static ChassisMotor_t *ChassisMotor_FindByWheel(ChassisWheel_e wheel)
 {
@@ -126,10 +139,10 @@ ChassisMotor_t ChassisMotor_Table[CHASSIS_MOTOR_COUNT] = {
           
         // VESC PID output uint: ampere(A)
         .pid_kp = 0.06f,
-        .pid_ki = 0.001f,
+        .pid_ki = 0.0008f,
         .pid_kd = 0.0f,
-        .pid_kf = 0.05f,
-        .pid_max_integral = 2.0f,
+        .pid_kf = 0.08f,
+        .pid_max_integral = 1.5f,
     },
     {
         .wheel = CHASSIS_WHEEL_RF,
@@ -142,10 +155,10 @@ ChassisMotor_t ChassisMotor_Table[CHASSIS_MOTOR_COUNT] = {
           
         // VESC PID output uint: ampere(A)
         .pid_kp = 0.06f,
-        .pid_ki = 0.001f,
+        .pid_ki = 0.0008f,
         .pid_kd = 0.0f,
-        .pid_kf = 0.05f,
-        .pid_max_integral = 2.0f,
+        .pid_kf = 0.08f,
+        .pid_max_integral = 1.5f,
     },
     {
         .wheel = CHASSIS_WHEEL_LB,
@@ -157,11 +170,11 @@ ChassisMotor_t ChassisMotor_Table[CHASSIS_MOTOR_COUNT] = {
         .current_limit = CHASSIS_VESC_CURRENT_LIMIT_A,
 
         // VESC PID output uint: ampere(A)
-        .pid_kp = 0.06f,
-        .pid_ki = 0.001f,
+        .pid_kp = 0.07f,
+        .pid_ki = 0.0008f,
         .pid_kd = 0.0f,
-        .pid_kf = 0.05f,
-        .pid_max_integral = 2.0f,
+        .pid_kf = 0.08f,
+        .pid_max_integral = 1.0f,
     },
     {
         .wheel = CHASSIS_WHEEL_RB,
@@ -209,11 +222,11 @@ ChassisMotor_t ChassisMotor_Table[CHASSIS_MOTOR_COUNT] = {
         .current_limit = CHASSIS_VESC_CURRENT_LIMIT_A,
 
         // VESC PID output uint: ampere(A)
-        .pid_kp = 0.06f,
-        .pid_ki = 0.001f,
+        .pid_kp = 0.07f,
+        .pid_ki = 0.0008f,
         .pid_kd = 0.0f,
-        .pid_kf = 0.05f,
-        .pid_max_integral = 2.0f,
+        .pid_kf = 0.08f,
+        .pid_max_integral = 1.0f,
     },
 };
 
@@ -234,6 +247,7 @@ void ChassisMotor_InitAll(void)
         motor->target_wheel_rpm = 0.0f;
         motor->feedback_wheel_rpm = 0.0f;
         motor->current_cmd = 0.0f;
+        motor->sbus_wheel_rpm = 0.0f;
 
         if (motor->type == CHASSIS_MOTOR_TYPE_C620) {
             Motor_Init(&motor->c620_motor, motor->c620_rx_id, motor->c620_tx_id);
@@ -295,7 +309,7 @@ void ChassisMotor_SetWheelTargetRpm(ChassisWheel_e wheel, float wheel_rpm)
     ChassisMotor_t *motor = ChassisMotor_FindByWheel(wheel);
 
     if (motor != NULL) {
-        motor->target_wheel_rpm = wheel_rpm;
+        motor->sbus_wheel_rpm = wheel_rpm;
     }
 }
 
@@ -328,8 +342,8 @@ void ChassisMotor_SetAckermann(float vx_mps, float dm_radps)
     if (fabs(dm_radps) < 0.10f) {
         v_fl = v_fr = v_rl = v_rr = v_ml = v_mr = vx_mps;
         radps_l = radps_r = 0.0f;
-        pos_speed_ctrl(&hcan2, MOTOR_LEFT_CANID, 0, 0.8f);
-        pos_speed_ctrl(&hcan2, MOTOR_RIGHT_CANID, 0, 0.8f);
+        pos_speed_ctrl(&hcan2, MOTOR_LEFT_CANID, 0, 1.25f);
+        pos_speed_ctrl(&hcan2, MOTOR_RIGHT_CANID, 0, 1.25f);
     } 
     // 阿克曼转向解算
     else {
@@ -351,8 +365,8 @@ void ChassisMotor_SetAckermann(float vx_mps, float dm_radps)
         v_rr = w * (R + CHASSIS_TRACK_WIDTH_M / 2.0f);
 
         // 中间轮速度取后轮速度 Middle wheel speed takes the rear wheel speed
-        v_ml = v_rl;
-        v_mr = v_rr;
+        v_ml = w * (R - CHASSIS_MID_TRACK_WIDTH_M / 2.0f);
+        v_mr = w * (R + CHASSIS_MID_TRACK_WIDTH_M / 2.0f);
         
         // 前轮公式：v = w * sqrt(L^2 + (R ± W/2)^2)
         float sign = (vx_mps >= 0) ? 1.0f : -1.0f;
@@ -373,8 +387,36 @@ void ChassisMotor_SetAckermann(float vx_mps, float dm_radps)
     ChassisMotor_SetWheelTargetRpm(CHASSIS_WHEEL_RM, v_mr * mps_to_rpm);
 
     // DM4310 电机的转向控制  Steering control for DM4310 motors
-    pos_speed_ctrl(&hcan2, MOTOR_LEFT_CANID, radps_l, 1.0f);
-    pos_speed_ctrl(&hcan2, MOTOR_RIGHT_CANID, radps_r, 1.0f);
+    pos_speed_ctrl(&hcan2, MOTOR_LEFT_CANID, radps_l, 1.25f);
+    pos_speed_ctrl(&hcan2, MOTOR_RIGHT_CANID, radps_r, 1.25f);
+}
+
+void ChassisMotor_EmergencyStop(void)
+{
+    uint8_t zero_data[8] = {0};
+
+    for (uint32_t i = 0; i < CHASSIS_MOTOR_COUNT; i++) {
+        ChassisMotor_t *motor = &ChassisMotor_Table[i];
+
+        motor->target_wheel_rpm = 0.0f;
+        motor->current_cmd = 0.0f;
+
+        motor->speed_pid.error = 0.0f;
+        motor->speed_pid.prev_error = 0.0f;
+        motor->speed_pid.prev_target = 0.0f;
+        motor->speed_pid.integral = 0.0f;
+    }
+
+    CAN_Send_Data(&hcan1, 0x200, zero_data, 8);
+
+    for (uint32_t i = 0; i < CHASSIS_MOTOR_COUNT; i++) {
+        ChassisMotor_t *motor = &ChassisMotor_Table[i];
+
+        if (motor->type == CHASSIS_MOTOR_TYPE_VESC) {
+            comm_can_set_current(motor->hcan, motor->vesc_id, 0.0f);
+
+        }
+    }
 }
 
 // 根据遥控器输入更新底盘速度命令 Update chassis speed commands based on remote control input
@@ -403,7 +445,7 @@ static uint8_t ChassisMotor_Stop(ChassisMotor_t *motor) {
         return 1U;
     }
     
-    if ( motor->target_wheel_rpm > -1.0f && motor->target_wheel_rpm < 1.0f) {
+    if ( motor->sbus_wheel_rpm > -1.0f && motor->sbus_wheel_rpm < 1.0f) {
         motor->target_wheel_rpm = 0.0f;
         motor->current_cmd = 0.0f;
 
@@ -424,6 +466,8 @@ void ChassisMotor_ControlLoop(void) {
   for (uint32_t i = 0; i < CHASSIS_MOTOR_COUNT; i++) {
     ChassisMotor_t *motor = &ChassisMotor_Table[i];
     motor->feedback_wheel_rpm = ChassisMotor_GetFeedbackRpm(motor->wheel);
+
+    ChassisMotor_UpdateTargetRpm(motor);
 
      // 如果目标转速接近于零，则直接停止电机以避免积分累加 up  If the target speed is close to zero, stop the motor directly to avoid integral windup
     if (ChassisMotor_Stop(motor)) {
@@ -575,7 +619,6 @@ for (uint32_t n = 0U; n < CHASSIS_MOTOR_COUNT; n++) {
         break;
     }
 }
-
-  
 }
+
 
