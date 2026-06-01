@@ -103,3 +103,10 @@ ROS2
 3. 如何通过串口/UDP 连接 Agent
 4. 如何把内部控制数据映射成 DDS topic
 5. 如何做 Agent 断线重连
+
+git submodule add https://github.com/eProsima/Micro-XRCE-DDS-Client.git Middlewares/Third_Party/Micro-XRCE-DDS-Client
+这个库来自哪里
+当前用的是哪个 commit
+以后怎么更新
+别人 clone 你的工程后怎么拉取这个库
+git submodule update --init --recursive

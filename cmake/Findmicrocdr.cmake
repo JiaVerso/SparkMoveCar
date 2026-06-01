@@ -1,0 +1,6 @@
+if(TARGET microcdr)
+    set(microcdr_FOUND TRUE)
+    set(microcdr_VERSION 2.0.2)
+else()
+    set(microcdr_FOUND FALSE)
+endif()
