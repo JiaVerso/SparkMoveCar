@@ -86,3 +86,20 @@ cubemx步骤：时钟，串口全局使能（异步通信），不然没发进�
  6. 线性归一化其实是为了解耦，不同遥控器输入值不一样，364~1800或者200~1600 ，只需要归一化到{-1,1}然后去乘物理极限速度就可以
  ## adc采集电压
 1. modbus协议，非隔离485通信！！！ 
+
+## uxrce-dds
+1. 又称Micro-xrce-dds，是eprosima实现的轻量级dds
+2. micro-ros是mcu上的ros编程框架，底层还是使用Uxrce-dds 
+3. uorb是px4飞控内部的消息系统，比如传感器模块、控制器模块，uxrce-dds将uorb topic 转为ros中的topic
+4. RT-Thread 内部控制数据     
+  ↓
+自己的 dds_bridge / xrce_client
+  ↓
+Micro XRCE-DDS Agent
+  ↓
+ROS2
+1. 如何选择只发布/订阅少量 topic
+2. 如何在 MCU 上跑 XRCE-DDS Client
+3. 如何通过串口/UDP 连接 Agent
+4. 如何把内部控制数据映射成 DDS topic
+5. 如何做 Agent 断线重连

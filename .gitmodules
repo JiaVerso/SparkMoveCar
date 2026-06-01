@@ -1,0 +1,3 @@
+[submodule "Middlewares/Third_Party/Middlewares/Third_Party/Micro-XRCE-DDS-Client"]
+	path = Middlewares/Third_Party/Middlewares/Third_Party/Micro-XRCE-DDS-Client
+	url = https://github.com/eProsima/Micro-XRCE-DDS-Client.git
