@@ -82,7 +82,6 @@ typedef size_t (* read_custom_func) (
         size_t length,
         int timeout,
         uint8_t* error_code);
-
 /**
  * @nosubgrouping
  */

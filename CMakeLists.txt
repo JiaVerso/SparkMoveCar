@@ -115,6 +115,8 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     Device/N630/dev_n630.c
     Bsp/bsp_sbus.c
     App/Chassis/chassis.c
+    App/Micro_Xrce_DDS/uxrce_app.c
+    App/Micro_Xrce_DDS/uxrce_transport_uart.c
 
     Drivers/CMSIS/DSP/Source/MatrixFunctions/arm_mat_init_f32.c
     Drivers/CMSIS/DSP/Source/MatrixFunctions/arm_mat_add_f32.c
@@ -137,6 +139,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     Drivers/CMSIS/DSP/Include
     Device/N630
     App/Chassis
+    App/Micro_Xrce_DDS
 )
 
 # Add project symbols (macros)

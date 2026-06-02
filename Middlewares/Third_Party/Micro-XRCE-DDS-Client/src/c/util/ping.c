@@ -68,12 +68,15 @@ bool uxr_ping_agent_attempts(
         uxrCommunication* comm,
         const int timeout_ms,
         const uint8_t attempts)
-{
+{   
     bool agent_pong = false;
+
+    // 初始化一个序列化缓冲区对象 
     uint8_t output_buffer[UXR_PING_BUF];
     ucdrBuffer ub;
     ucdr_init_buffer(&ub, output_buffer, sizeof(output_buffer));
 
+    // 序列化消息，发送到Agent
     if (serialize_get_info_message(&ub, SESSION_ID_WITHOUT_CLIENT_KEY))
     {
         size_t message_length = ucdr_buffer_length(&ub);

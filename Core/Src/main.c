@@ -50,7 +50,7 @@
 #include "dev_n630.h"
 #include "bsp_sbus.h"
 #include "chassis.h"
-
+#include "uxrce_transport_uart.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -65,6 +65,7 @@ uint8_t USART8_Rx_buf[RX_BUF_SIZE];   // DMA Buff
 
 #define TX_DMA_BUF_SIZE 2048
 static uint8_t tx_dma_buf[TX_DMA_BUF_SIZE];
+static uint8_t uxrce_rx_dma_buf[256];
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -217,14 +218,16 @@ int main(void)
   BSP_Init(BSP_DC_LU_ON | BSP_DC_LD_ON | BSP_DC_RU_ON | BSP_DC_RD_ON | BSP_LED_GREEN_ON, 0, 0);
   
   Uart_Init(&huart1, sbus_dma_buf, 25, Serialplot_Call_Back);
-  Uart_Init(&huart8, rx_buffer, RX_BUF_SIZE, Serialplot8_Call_Back);
+  // Uart_Init(&huart8, rx_buffer, RX_BUF_SIZE, Serialplot8_Call_Back);
+
+  Uart_Init(&huart8, uxrce_rx_dma_buf, sizeof(uxrce_rx_dma_buf), uxrDds_UartRxCallback);
 
   // PID_Init(&pid_speed, 0.0f, 0.0f, 0.0f, 0.0f,2500.0f, 2500.0f);
 
   // uart_rx_fifo = fifo_s_create(2048);
   // HAL_UARTEx_ReceiveToIdle_DMA(&huart8, USART8_Rx_buf, RX_BUF_SIZE);
 
-  Plotter_Init(&my_plotter, rx_buffer, 0xAA, UART8_Send_To_Plotter_DMA);
+  // Plotter_Init(&my_plotter, rx_buffer, 0xAA, UART8_Send_To_Plotter_DMA);
   
   CAN_Filter_Mask_Config(&hcan1, CAN_FILTER(0) | CAN_FIFO_0 | CAN_STDID | CAN_DATA_TYPE, 0, 0);
   CAN_Filter_Ext_Mask_Config(&hcan1, 1, 0, 0, CAN_FILTER_FIFO1);

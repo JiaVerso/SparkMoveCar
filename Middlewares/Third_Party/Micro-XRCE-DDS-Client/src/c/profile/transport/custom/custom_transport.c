@@ -149,7 +149,7 @@ bool uxr_init_custom_transport(
         return rv;
     }
 
-    transport->args = args;
+    transport->args = args; 
 
     if (transport->open(transport))
     {

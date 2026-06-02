@@ -11,7 +11,7 @@ clang编译器默认不会把main函数当成单独一个线程，main在此时�
  **/
  ### UART
 * DMA半满全满+环形缓冲区(FIFO)+idle
-!!! malloc 内存池 内存管理块 ---（预编译指令（ASSERT断言） #ifdef USE_DYNAMIC_MEMORY等等）--- 指针函数fifo_s_t* app_create() 和函数指针fifo_s_t *app_create()
+!!! malloc 内存池 内存管理块 ---（预编译指令（ASSERT断言） #ifdef USE_DYNAMIC_MEMORY等等）--- 指针函数fifo_s_t *app_create() 和函数指针fifo_s_t (*app_create)() --> 指向函数的指针
 !!! 互斥锁 MUTEX_DECLARE(mutex)
 !!! memcpy（无法处理内存重叠，本质是从前到后的按字节搬运（不确定底层原理）） memmove（多了一层地址判断） 区别
 issue: 串口接受乱码： 时钟配置错误，假如实际晶振8，cubemx晶振25，速度就会慢3倍，115200通信率就会降低3倍，所以接收乱码
@@ -110,3 +110,9 @@ git submodule add https://github.com/eProsima/Micro-XRCE-DDS-Client.git Middlewa
 以后怎么更新
 别人 clone 你的工程后怎么拉取这个库
 git submodule update --init --recursive
+
+6. size_t 是用来表示内存大小、数组长度、字节数的无符号整数类型
+7. 消息转义：内容中出现了和枕头帧尾相同的内容，需要把相同的内容转义，比如帧尾0x7e，就需要把内容中的0x7e转义-> 0x7D 0x5E
+8. do {
+    // 循环体
+} while (条件);     do while 适合“我至少要执行一次，然后再决定要不要继续”。
