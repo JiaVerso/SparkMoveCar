@@ -118,6 +118,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     App/Micro_Xrce_DDS/uxrce_app.c
     App/Micro_Xrce_DDS/uxrce_transport_uart.c
     App/Micro_Xrce_DDS/uxrce_time_port.c
+     App/Micro_Xrce_DDS/uxrce_pub_topics.c
 
     Drivers/CMSIS/DSP/Source/MatrixFunctions/arm_mat_init_f32.c
     Drivers/CMSIS/DSP/Source/MatrixFunctions/arm_mat_add_f32.c

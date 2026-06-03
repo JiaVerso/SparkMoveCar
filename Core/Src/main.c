@@ -67,7 +67,7 @@ uint8_t USART8_Rx_buf[RX_BUF_SIZE];   // DMA Buff
 #define TX_DMA_BUF_SIZE 2048
 static uint8_t tx_dma_buf[TX_DMA_BUF_SIZE];
 static uint8_t uxrce_rx_dma_buf[256];
-const uint8_t data[] = "hello\r\n";
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -223,7 +223,8 @@ int main(void)
   // Uart_Init(&huart8, rx_buffer, RX_BUF_SIZE, Serialplot8_Call_Back);
 
   Uart_Init(&huart8, uxrce_rx_dma_buf, sizeof(uxrce_rx_dma_buf), uxrDds_UartRxCallback);
-  
+  uxrce_app_init();
+
   // PID_Init(&pid_speed, 0.0f, 0.0f, 0.0f, 0.0f,2500.0f, 2500.0f);
 
   // uart_rx_fifo = fifo_s_create(2048);
@@ -354,7 +355,7 @@ int main(void)
     // }
 
     // Plotter_SendData(&my_plotter);
-    uxrce_ping_test_();
+    uxrce_app_loop();
 
     HAL_Delay(500);
   }

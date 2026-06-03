@@ -34,6 +34,7 @@ void uxrDds_UartRxCallback(uint8_t *data, uint16_t len)
         rx_head = next;
     }
 }
+
 /*
 * -----------------------------------------------------------------------------
 */
@@ -82,8 +83,8 @@ size_t uxrDds_UartWrite(
         args->huart,
         (uint8_t *)buffer,
         (uint16_t)length,
-                100);
-
+        100);
+        
     if (ret == HAL_OK) {
         *error_code = 0;
         return length;
@@ -102,6 +103,7 @@ size_t uxrDds_UartRead(uxrCustomTransport *transport,
                        int timeout,
                        uint8_t *error_code)
 {
+    // 参数未使用
     (void)transport;
 
     uint32_t start = HAL_GetTick();

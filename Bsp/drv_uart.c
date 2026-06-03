@@ -227,7 +227,7 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
     }
     else if (huart->Instance == UART8)  
     {
-        UART8_Manage_Object.Callback_Function(UART8_Manage_Object.Rx_Buffer, UART8_Manage_Object.Rx_Buffer_Size);
+        UART8_Manage_Object.Callback_Function(UART8_Manage_Object.Rx_Buffer, Size);
         HAL_UARTEx_ReceiveToIdle_DMA(huart, UART8_Manage_Object.Rx_Buffer, UART8_Manage_Object.Rx_Buffer_Size);
     }
 }
