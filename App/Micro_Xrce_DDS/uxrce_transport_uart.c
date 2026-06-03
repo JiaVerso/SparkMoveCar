@@ -82,7 +82,7 @@ size_t uxrDds_UartWrite(
         args->huart,
         (uint8_t *)buffer,
         (uint16_t)length,
-        100);
+                100);
 
     if (ret == HAL_OK) {
         *error_code = 0;

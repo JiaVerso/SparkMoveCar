@@ -51,6 +51,7 @@
 #include "bsp_sbus.h"
 #include "chassis.h"
 #include "uxrce_transport_uart.h"
+#include "uxrce_app.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -66,6 +67,7 @@ uint8_t USART8_Rx_buf[RX_BUF_SIZE];   // DMA Buff
 #define TX_DMA_BUF_SIZE 2048
 static uint8_t tx_dma_buf[TX_DMA_BUF_SIZE];
 static uint8_t uxrce_rx_dma_buf[256];
+const uint8_t data[] = "hello\r\n";
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -221,7 +223,7 @@ int main(void)
   // Uart_Init(&huart8, rx_buffer, RX_BUF_SIZE, Serialplot8_Call_Back);
 
   Uart_Init(&huart8, uxrce_rx_dma_buf, sizeof(uxrce_rx_dma_buf), uxrDds_UartRxCallback);
-
+  
   // PID_Init(&pid_speed, 0.0f, 0.0f, 0.0f, 0.0f,2500.0f, 2500.0f);
 
   // uart_rx_fifo = fifo_s_create(2048);
@@ -246,7 +248,7 @@ int main(void)
   // HAL_Delay(500);
 
   // VOFA_Init();
-  ChassisMotor_InitAll();
+  // ChassisMotor_InitAll();
   
 
   // imu_init(0x22, 0x23, &hcan1);
@@ -304,7 +306,7 @@ int main(void)
     // comm_can_set_rpm(25, 8000.0f);
     // comm_can_set_rpm(&hcan1, 26, 4000.0f);
   
-    ChassisMotor_ControlLoop();
+    // ChassisMotor_ControlLoop();
 
     // pos_speed_ctrl(&hcan2, MOTOR_LEFT_CANID, 0.0f, 1.0f);
     // pos_speed_ctrl(&hcan2, MOTOR_RIGHT_CANID, 0.0f, 1.0f);
@@ -352,8 +354,9 @@ int main(void)
     // }
 
     // Plotter_SendData(&my_plotter);
+    uxrce_ping_test_();
 
-    HAL_Delay(1);
+    HAL_Delay(500);
   }
   /* USER CODE END 3 */
 }

@@ -35,6 +35,8 @@ void uxrce_ping_test_(void) {
 
   uxr_init_custom_transport(&transport, &uart_args);
 
+  transport.framing_io.local_addr = 0x01; // Example local address
+
   if (uxr_ping_agent_attempts(&transport.comm, 1000, 10)) {
     // 绿灯闪烁 Green LED blinks
     uxrce_blink(LED_GREEN_GPIO_Port, LED_GREEN_Pin, 5, 100);
