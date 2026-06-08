@@ -117,3 +117,7 @@ git submodule update --init --recursive
     // 循环体
 } while (条件);     do while 适合“我至少要执行一次，然后再决定要不要继续”。
 9. HAL_GetTick() 递增的毫秒计数器
+10. git status --short
+git stash push -u -m "save xrce current work"
+git checkout HEAD~1
+git stash pop

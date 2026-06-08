@@ -25,6 +25,7 @@
 #include "uxrce_pub_topics.h"
 #include "uxrce_app.h"
 #include "gpio.h"
+#include "drv_uart.h"
 
 #define STREAM_HISTORY  4
 #define BUFFER_SIZE     1024
@@ -112,60 +113,48 @@ int Publish_HelloWorld_Init(uxrCustomTransport* transport, int argc, char** argv
             "</dds>";
     uint16_t participant_req = uxr_buffer_create_participant_xml(&session, reliable_out, participant_id, 0,
                     participant_xml, UXR_REPLACE);
-    
-    if (participant_req == UXR_INVALID_REQUEST_ID) {
-    uxrce_blink(LED_RED_GPIO_Port, LED_RED_Pin, 2, 200);
-    return 2;
-    }
 
-    uxrce_blink(LED_GREEN_GPIO_Port, LED_GREEN_Pin, 2, 100);
+    uxrObjectId topic_id = uxr_object_id(0x01, UXR_TOPIC_ID);
+    const char* topic_xml = "<dds>"
+            "<topic>"
+            "<name>HelloWorldTopic</name>"
+            "<dataType>HelloWorld</dataType>"
+            "</topic>"
+            "</dds>";
+    uint16_t topic_req = uxr_buffer_create_topic_xml(&session, reliable_out, topic_id, participant_id, topic_xml,
+                    UXR_REPLACE);
 
-    uxr_run_session_time(&session, 1000);
+    uxrObjectId publisher_id = uxr_object_id(0x01, UXR_PUBLISHER_ID);
+    const char* publisher_xml = "";
+    uint16_t publisher_req = uxr_buffer_create_publisher_xml(&session, reliable_out, publisher_id, participant_id,
+                    publisher_xml, UXR_REPLACE);
 
-    uxrce_blink(LED_GREEN_GPIO_Port, LED_GREEN_Pin, 4, 100);
-
-    connected = true;
-    return 0;
-    // uxrObjectId topic_id = uxr_object_id(0x01, UXR_TOPIC_ID);
-    // const char* topic_xml = "<dds>"
-    //         "<topic>"
-    //         "<name>HelloWorldTopic</name>"
-    //         "<dataType>HelloWorld</dataType>"
-    //         "</topic>"
-    //         "</dds>";
-    // uint16_t topic_req = uxr_buffer_create_topic_xml(&session, reliable_out, topic_id, participant_id, topic_xml,
-    //                 UXR_REPLACE);
-
-    // uxrObjectId publisher_id = uxr_object_id(0x01, UXR_PUBLISHER_ID);
-    // const char* publisher_xml = "";
-    // uint16_t publisher_req = uxr_buffer_create_publisher_xml(&session, reliable_out, publisher_id, participant_id,
-    //                 publisher_xml, UXR_REPLACE);
-
-    // datawriter_id = uxr_object_id(0x01, UXR_DATAWRITER_ID);
-    // const char* datawriter_xml = "<dds>"
-    //         "<data_writer>"
-    //         "<topic>"
-    //         "<kind>NO_KEY</kind>"
-    //         "<name>HelloWorldTopic</name>"
-    //         "<dataType>HelloWorld</dataType>"
-    //         "</topic>"
-    //         "</data_writer>"
-    //         "</dds>";
-    // uint16_t datawriter_req = uxr_buffer_create_datawriter_xml(&session, reliable_out, datawriter_id, publisher_id,
-    //                 datawriter_xml, UXR_REPLACE);
+    datawriter_id = uxr_object_id(0x01, UXR_DATAWRITER_ID);
+    const char* datawriter_xml = "<dds>"
+            "<data_writer>"
+            "<topic>"
+            "<kind>NO_KEY</kind>"
+            "<name>HelloWorldTopic</name>"
+            "<dataType>HelloWorld</dataType>"
+            "</topic>"
+            "</data_writer>"
+            "</dds>";
+    uint16_t datawriter_req = uxr_buffer_create_datawriter_xml(&session, reliable_out, datawriter_id, publisher_id,
+                    datawriter_xml, UXR_REPLACE);
 
     // Send create entities message and wait its status
-    // uint8_t status[4];
-    // uint16_t requests[4] = {
-    //     participant_req, topic_req, publisher_req, datawriter_req
-    // };
-    // if (!uxr_run_session_until_all_status(&session, 1000, requests, status, 4))
-    // {
-    //     printf("Error at create entities: participant: %i topic: %i publisher: %i datawriter: %i\n", status[0],
-    //             status[1], status[2], status[3]);
-    //     return 1;
-    // }
-    // connected = true;
+    uint8_t status[4];
+    uint16_t requests[4] = {
+        participant_req, topic_req, publisher_req, datawriter_req
+    };
+    if (!uxr_run_session_until_all_status(&session, 1000, requests, status, 4))
+    {
+        printf("Error at create entities: participant: %i topic: %i publisher: %i datawriter: %i\n", status[0],
+                status[1], status[2], status[3]);
+        return 1;
+    }
+    connected = true;
+    return 0;
 
 
 //     if (participant_req == UXR_INVALID_REQUEST_ID) {

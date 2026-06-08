@@ -74,6 +74,8 @@ void TIM_UART_PeriodElapsedCallback();
 
 void UART_Process_Rx_DMA_Circular(Struct_UART_Manage_Object *huart, uint16_t Size);
 
+int __io_putchar(int ch);
+
 #endif
 
 /************************ COPYRIGHT(C) SCUT-ROBOTLAB **************************/

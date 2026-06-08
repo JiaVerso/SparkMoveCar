@@ -68,14 +68,14 @@ set(UCLIENT_CUSTOM_TRANSPORT_MTU 256 CACHE STRING "" FORCE)
 add_subdirectory(cmake/stm32cubemx)
 
 add_subdirectory(
-    Middlewares/Third_Party/Micro-CDR
+    Modules/Micro-CDR
     ${CMAKE_BINARY_DIR}/microcdr
 )
 
 list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 add_subdirectory(
-    Middlewares/Third_Party/Micro-XRCE-DDS-Client
+    Modules/Micro-XRCE-DDS-Client
     ${CMAKE_BINARY_DIR}/microxrcedds_client
 )
 
