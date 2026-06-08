@@ -21,6 +21,7 @@
 #include "can.h"
 #include "dma.h"
 #include "spi.h"
+#include "stm32f4xx_hal.h"
 #include "usart.h"
 #include "gpio.h"
 
@@ -66,8 +67,6 @@ uint8_t USART8_Rx_buf[RX_BUF_SIZE];   // DMA Buff
 #define TX_DMA_BUF_SIZE 2048
 static uint8_t tx_dma_buf[TX_DMA_BUF_SIZE];
 static uint8_t uxrce_rx_dma_buf[256];
-static uint8_t debug_rx_dma_buf[256];
-
 
 /* USER CODE END PD */
 
@@ -134,11 +133,6 @@ void Serialplot_Call_Back(uint8_t *Buffer, uint16_t Length)
 void Serialplot8_Call_Back(uint8_t *Buffer, uint16_t Length)
 {
     App_Test_Parse_Command(Buffer, Length);
-}
-
-void SerialDebug_Call_Back(uint8_t *Buffer, uint16_t Length)
-{
-    // Implementation for parsing commands
 }
 
  /* ---------------------------------------CAN Callback Configuration--------------------------------------------------------*/
@@ -221,21 +215,14 @@ int main(void)
   MX_CAN2_Init();
   MX_SPI5_Init();
   MX_USART1_UART_Init();
-  MX_UART7_Init();
   /* USER CODE BEGIN 2 */
 
   BSP_Init(BSP_DC_LU_ON | BSP_DC_LD_ON | BSP_DC_RU_ON | BSP_DC_RD_ON | BSP_LED_GREEN_ON, 0, 0);
   
-  // SBUS DMA 初始化
   Uart_Init(&huart1, sbus_dma_buf, 25, Serialplot_Call_Back);
   // Uart_Init(&huart8, rx_buffer, RX_BUF_SIZE, Serialplot8_Call_Back);
 
-  // Micro XRCE DDS 
   Uart_Init(&huart8, uxrce_rx_dma_buf, sizeof(uxrce_rx_dma_buf), uxrDds_UartRxCallback);
-
-  // DEBUG UART
-  Uart_Init(&huart7, debug_rx_dma_buf, sizeof(debug_rx_dma_buf), SerialDebug_Call_Back);
-
   uxrce_app_init();
 
   // PID_Init(&pid_speed, 0.0f, 0.0f, 0.0f, 0.0f,2500.0f, 2500.0f);

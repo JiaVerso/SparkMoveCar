@@ -232,10 +232,4 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
     }
 }
 
-int __io_putchar(int ch)
-{
-    HAL_UART_Transmit(&huart7, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
-    return ch;
-}
-
 /************************ COPYRIGHT(C) SCUT-ROBOTLAB **************************/
