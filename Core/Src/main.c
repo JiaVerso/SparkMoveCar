@@ -31,6 +31,7 @@
 #include "fifo.h"
 #include <string.h>
 #include <math.h>
+#include <stdio.h>
 
 #include "usart.h"
 #include "drv_can.h"
@@ -60,12 +61,13 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define RX_BUF_SIZE 1024
+#define RX_BUF_SIZE 2048
 uint8_t USART8_Rx_buf[RX_BUF_SIZE];   // DMA Buff
 
 #define TX_DMA_BUF_SIZE 2048
-static uint8_t tx_dma_buf[TX_DMA_BUF_SIZE];
-static uint8_t uxrce_rx_dma_buf[256];
+// static uint8_t tx_dma_buf[TX_DMA_BUF_SIZE];
+static uint8_t uxrce_rx_dma_buf[2048];
+static uint8_t debug_rx_dma_buf[2048];
 
 /* USER CODE END PD */
 
@@ -93,22 +95,22 @@ N630_Motor_t n630_motor[30] = {0};
 int8_t gyro_map[3]  = {1, 2, 3};
 int8_t accel_map[3] = {1, 2, 3};
 
-typedef union {
-    float f_data[4];      // 3个数据 + 1个包尾 = 4个float
-    uint8_t byte_data[16]; // 4 * 4 = 16 字节
-} VOFA_JustFloat_t;
+// typedef union {
+//     float f_data[4];      // 3个数据 + 1个包尾 = 4个float
+//     uint8_t byte_data[16]; // 4 * 4 = 16 字节
+// } VOFA_JustFloat_t;
 
-VOFA_JustFloat_t vofa_packet;
+// VOFA_JustFloat_t vofa_packet;
 extern imu_t imu;
 extern uint8_t sbus_dma_buf[25];
 extern ChassisMotor_t ChassisMotor_Table[CHASSIS_MOTOR_COUNT];
 
-void VOFA_Init(void) {
-    vofa_packet.byte_data[48] = 0x00;
-    vofa_packet.byte_data[49] = 0x00;
-    vofa_packet.byte_data[50] = 0x80;
-    vofa_packet.byte_data[51] = 0x7F;
-}
+// void VOFA_Init(void) {
+//     vofa_packet.byte_data[48] = 0x00;
+//     vofa_packet.byte_data[49] = 0x00;
+//     vofa_packet.byte_data[50] = 0x80;
+//     vofa_packet.byte_data[51] = 0x7F;
+// }
 /**
  * @brief 串口 DMA 循环绕回处理核心算法 (类的方法)
  * @param obj 串口管理对象指针
@@ -116,8 +118,8 @@ void VOFA_Init(void) {
  */
 void UART8_Trigger_Tx_DMA(void)
 {
-    App_Test_Trigger_UART_DMA(&huart8, uart_rx_fifo, tx_dma_buf, TX_DMA_BUF_SIZE);
-}
+//     App_Test_Trigger_UART_DMA(&huart8, uart_rx_fifo, tx_dma_buf, TX_DMA_BUF_SIZE);
+ }
 
 void Serialplot_Call_Back(uint8_t *Buffer, uint16_t Length)
 {
@@ -129,9 +131,14 @@ void Serialplot_Call_Back(uint8_t *Buffer, uint16_t Length)
     SBUS_Handle();
 }
 
+void SerialDebug_Call_Back(uint8_t *Buffer, uint16_t Length)
+{
+   // ...
+}
+
 void Serialplot8_Call_Back(uint8_t *Buffer, uint16_t Length)
 {
-    App_Test_Parse_Command(Buffer, Length);
+    // App_Test_Parse_Command(Buffer, Length);
 }
 
  /* ---------------------------------------CAN Callback Configuration--------------------------------------------------------*/
@@ -153,7 +160,7 @@ void DMotor_Cmd_TxCallback(Struct_CAN_Rx_Buffer *Rx_Buffer) {
 
 void UART8_Send_To_Plotter_DMA(uint8_t *data, uint16_t len) {
     // 调用 HAL 库的 DMA 发送函数
-    UART_Send_Data(&huart8, data, len);
+    // UART_Send_Data(&huart8, data, len);
 }
 
 /* USER CODE END PV */
@@ -223,6 +230,9 @@ int main(void)
   // Uart_Init(&huart8, rx_buffer, RX_BUF_SIZE, Serialplot8_Call_Back);
 
   Uart_Init(&huart8, uxrce_rx_dma_buf, sizeof(uxrce_rx_dma_buf), uxrDds_UartRxCallback);
+  
+  Uart_Init(&huart7, debug_rx_dma_buf, sizeof(debug_rx_dma_buf), SerialDebug_Call_Back);
+
   uxrce_app_init();
 
   // PID_Init(&pid_speed, 0.0f, 0.0f, 0.0f, 0.0f,2500.0f, 2500.0f);
@@ -357,7 +367,7 @@ int main(void)
     // Plotter_SendData(&my_plotter);
     uxrce_app_loop();
 
-    HAL_Delay(500);
+    HAL_Delay(50);
   }
   /* USER CODE END 3 */
 }

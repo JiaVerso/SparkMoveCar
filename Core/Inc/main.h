@@ -58,6 +58,7 @@ void Error_Handler(void);
 /* USER CODE BEGIN EFP */
 void UART8_Trigger_Tx_DMA(void);
 void Motor_Cmd_TxCallback(Struct_CAN_Rx_Buffer *Rx_Buffer);
+void SerialDebug_Call_Back(uint8_t *Buffer, uint16_t Length);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/

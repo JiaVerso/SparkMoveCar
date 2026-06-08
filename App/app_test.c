@@ -92,7 +92,7 @@ void App_Test_SerialPlot_Float(void)
     }
 
     // 调用底层驱动发送这 9 个字节
-    UART_Send_Data(&huart8, test_tx_buf, 9);
+    // UART_Send_Data(&huart8, test_tx_buf, 9);
     
     // 状态更新
     flag++;

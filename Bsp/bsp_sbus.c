@@ -96,13 +96,13 @@ static int SBUS_Parse_Data(void)
     if (sbus_data[23] & (1 << 2))
     {
         failsafe_status = SBUS_SIGNAL_LOST;
-        printf("SBUS_SIGNAL_LOST\n");
+        // printf("SBUS_SIGNAL_LOST\n");
         // lost contact errors  遥控器失联错误
     }
     else if (sbus_data[23] & (1 << 3))
     {
         failsafe_status = SBUS_SIGNAL_FAILSAFE;
-        printf("SBUS_SIGNAL_FAILSAFE\n");
+        // printf("SBUS_SIGNAL_FAILSAFE\n");
         // data loss error  数据丢失错误
     }
     return failsafe_status;

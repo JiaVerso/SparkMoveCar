@@ -14,6 +14,7 @@
 #include "drv_uart.h"
 #include "usart.h"
 #include <stdint.h>
+#include <stdio.h>
 
 /* Private macros ------------------------------------------------------------*/
 
@@ -134,7 +135,7 @@ uint8_t UART_Send_Data(UART_HandleTypeDef *huart, uint8_t *Data, uint16_t Length
 void TIM_UART_PeriodElapsedCallback()
 {
     // UART串口绘图
-    UART_Send_Data(&huart8, UART8_Tx_Data, 1 + 12 * sizeof(float));
+    // UART_Send_Data(&huart8, UART8_Tx_Data, 1 + 12 * sizeof(float));
 }
 
 /**

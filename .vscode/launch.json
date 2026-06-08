@@ -12,7 +12,7 @@
             "type": "cortex-debug",
             "servertype": "openocd",
             "configFiles": [
-                "interface/stlink.cfg",
+                "interface/stlink-v2.cfg",
                 "target/stm32f4x.cfg"
             ],
             "serverpath": "C:/software/OpenOCD-20260302-0.12.0/bin/openocd.exe",

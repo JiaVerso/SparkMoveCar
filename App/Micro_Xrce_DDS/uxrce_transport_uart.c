@@ -3,6 +3,7 @@
 
 #include "uxrce_app.h"
 #include "stm32f4xx_hal.h"
+#include <stdio.h>
 
 #include "uxrce_transport_uart.h"
 
@@ -65,33 +66,32 @@ bool uxrDds_UartClose(uxrCustomTransport *transport)
 /*
 * -----------------------------------------------------------------------------
 */
-size_t uxrDds_UartWrite(
-    uxrCustomTransport *transport,
-    const uint8_t* buffer,
-    size_t length,
-    uint8_t *error_code)
-{
-    uxrUartTransArgs_t *args =
-        (uxrUartTransArgs_t *)transport->args;
+size_t uxrDds_UartWrite(uxrCustomTransport *transport, const uint8_t *buffer,
+                        size_t length, uint8_t *error_code) {
 
-    if (args == NULL || args->huart == NULL || buffer == NULL) {
-        *error_code = 1;
-        return 0;
-    }
+  uxrUartTransArgs_t *args = (uxrUartTransArgs_t *)transport->args;
 
-    HAL_StatusTypeDef ret = HAL_UART_Transmit(
-        args->huart,
-        (uint8_t *)buffer,
-        (uint16_t)length,
-        100);
-        
-    if (ret == HAL_OK) {
-        *error_code = 0;
-        return length;
-    }
+  uint32_t start = HAL_GetTick();
 
+  if ((HAL_GetTick() - start) > 1000) {
     *error_code = 2;
     return 0;
+  }
+
+  HAL_StatusTypeDef ret =
+      HAL_UART_Transmit(args->huart, (uint8_t *)buffer, (uint16_t)length, 1000);
+
+  if (ret == HAL_OK) {
+    if (error_code != NULL) {
+      *error_code = 0;
+    }
+    return length;
+  }
+
+  if (error_code != NULL) {
+    *error_code = 2;
+  }
+  return 0;
 }
 
 /*
@@ -127,3 +127,6 @@ size_t uxrDds_UartRead(uxrCustomTransport *transport,
 
     return count;
 }
+
+
+

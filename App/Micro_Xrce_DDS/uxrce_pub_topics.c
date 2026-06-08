@@ -27,7 +27,7 @@
 #include "gpio.h"
 #include "drv_uart.h"
 
-#define STREAM_HISTORY  4
+#define STREAM_HISTORY  8
 #define BUFFER_SIZE     1024
 
 uxrSession session;
@@ -64,6 +64,24 @@ bool HelloWorld_deserialize_topic(
 
     return !reader->error;
 }
+
+// -----------------------------------------------------------------------------
+// 自定义 ROS2 std_msgs::msg::dds_::String_ 话题类型支持函数 Definition of custom ROS2 std_msgs::msg::dds_::String_ topic type support functions
+bool StdString_serialize_topic(ucdrBuffer* writer, const char* msg)
+{
+    (void) ucdr_serialize_string(writer, msg);
+    return !writer->error;
+}
+
+uint32_t StdString_size_of_topic(const char* msg, uint32_t size)
+{
+    uint32_t previousSize = size;
+
+    size += (uint32_t)(ucdr_alignment(size, 4) + 4 + strlen(msg) + 1);
+
+    return size - previousSize;
+}
+// -----------------------------------------------------------------------------
 
 uint32_t HelloWorld_size_of_topic(
         const HelloWorld* topic,
@@ -117,8 +135,8 @@ int Publish_HelloWorld_Init(uxrCustomTransport* transport, int argc, char** argv
     uxrObjectId topic_id = uxr_object_id(0x01, UXR_TOPIC_ID);
     const char* topic_xml = "<dds>"
             "<topic>"
-            "<name>HelloWorldTopic</name>"
-            "<dataType>HelloWorld</dataType>"
+            "<name>rt/HelloWorldTopic</name>"
+            "<dataType>std_msgs::msg::dds_::String_</dataType>"
             "</topic>"
             "</dds>";
     uint16_t topic_req = uxr_buffer_create_topic_xml(&session, reliable_out, topic_id, participant_id, topic_xml,
@@ -134,8 +152,8 @@ int Publish_HelloWorld_Init(uxrCustomTransport* transport, int argc, char** argv
             "<data_writer>"
             "<topic>"
             "<kind>NO_KEY</kind>"
-            "<name>HelloWorldTopic</name>"
-            "<dataType>HelloWorld</dataType>"
+            "<name>rt/HelloWorldTopic</name>"
+            "<dataType>std_msgs::msg::dds_::String_</dataType>"
             "</topic>"
             "</data_writer>"
             "</dds>";
@@ -143,45 +161,31 @@ int Publish_HelloWorld_Init(uxrCustomTransport* transport, int argc, char** argv
                     datawriter_xml, UXR_REPLACE);
 
     // Send create entities message and wait its status
+
     uint8_t status[4];
     uint16_t requests[4] = {
-        participant_req, topic_req, publisher_req, datawriter_req
+        participant_req,
+        topic_req,
+        publisher_req,
+        datawriter_req
     };
     if (!uxr_run_session_until_all_status(&session, 1000, requests, status, 4))
     {
-        printf("Error at create entities: participant: %i topic: %i publisher: %i datawriter: %i\n", status[0],
-                status[1], status[2], status[3]);
+        printf("Error at create entities: participant: %u \r\n ", status[0]);
+        printf("Error at create entities: topic: %u \r\n ", status[1]);
+        printf("Error at create entities: publisher: %u \r\n ", status[2]);
+        printf("Error at create entities: datawriter: %u \r\n ", status[3]);
+        // uxrce_blink(LED_RED_GPIO_Port, LED_RED_Pin, 5, 100);
         return 1;
     }
     connected = true;
     return 0;
-
-
-//     if (participant_req == UXR_INVALID_REQUEST_ID) {
-//     return 2;
-// }
-// if (topic_req == UXR_INVALID_REQUEST_ID) {
-//     return 3;
-// }
-// if (publisher_req == UXR_INVALID_REQUEST_ID) {
-//     return 4;
-// }
-// if (datawriter_req == UXR_INVALID_REQUEST_ID) {
-//     return 5;
-// }
-
-// /* 先只把 create entity 请求发出去，不等待 status */
-// uxr_run_session_time(&session, 100);
-
-// connected = true;
-// return 0;
 
     // Delete resources
     // uxr_delete_session(&session);
 
     // Clean up transport and session here (not shown for brevity)
 
-    // return 0;
 }
 
 void Publish_HelloWorld_Loop(void)
@@ -193,18 +197,14 @@ void Publish_HelloWorld_Loop(void)
         return;
     }
 
-    static uint32_t count = 0;
-
     // Write topics
-    HelloWorld topic = {
-            ++count, "Hello DDS world!"
-        };
+    const char* msg = "Hello Micro XRCE-DDS!";
 
-        ucdrBuffer ub;
-        uint32_t topic_size = HelloWorld_size_of_topic(&topic, 0);
-        uxr_prepare_output_stream(&session, reliable_out, datawriter_id, &ub, topic_size);
-        HelloWorld_serialize_topic(&ub, &topic);
+    ucdrBuffer ub;
+    uint32_t topic_size = StdString_size_of_topic(msg, 0);
+    uxr_prepare_output_stream(&session, reliable_out, datawriter_id, &ub, topic_size);
+    StdString_serialize_topic(&ub, msg);
 
-        // printf("Send topic: %s, id: %i\n", topic.message, topic.index);
-        connected = uxr_run_session_time(&session, 1000);
+    // printf("Send topic: %s, id: %i\n", topic.message, topic.index);
+    connected = uxr_run_session_time(&session, 1000);
 }
