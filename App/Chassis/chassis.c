@@ -38,7 +38,7 @@ static float ChassisMotor_Clamp(float value, float limit)
 }
 
 // 线性化遥控输入，转换成[-1.0, 1.0]范围的速度命令  Linearize remote control input into speed commands in the range [-1.0, 1.0]
-static float ChassisMotor_NormalizeChannel(uint16_t channel)
+float ChassisMotor_NormalizeChannel(uint16_t channel)
 {
     float value;
 
@@ -58,7 +58,7 @@ static float ChassisMotor_NormalizeChannel(uint16_t channel)
 }
 
 // 阿克曼转向角度特殊的归一化处理 Special normalization for Ackermann steering angle
-static float ChassisMotor_NormalizeSteerChannel(uint16_t channel)
+float ChassisMotor_NormalizeSteerChannel(uint16_t channel)
 {
     if (channel > CHASSIS_SBUS_STEER_CENTER - CHASSIS_SBUS_STEER_DEADBAND_RAW &&
         channel < CHASSIS_SBUS_STEER_CENTER + CHASSIS_SBUS_STEER_DEADBAND_RAW) {
@@ -423,7 +423,7 @@ void ChassisMotor_EmergencyStop(void)
 void ChassisMotor_UpdateFromSbusChannels(const uint16_t channels[CHASSIS_SBUS_CH_COUNT])
 {
     float vx_cmd;
-    float radps_cmd;
+    float steer_rad;
     // float wz_cmd;
 
     if (channels == NULL) {
@@ -433,10 +433,10 @@ void ChassisMotor_UpdateFromSbusChannels(const uint16_t channels[CHASSIS_SBUS_CH
 
     // 对遥控器输入进行线性化处理，目的是解耦 
     vx_cmd = ChassisMotor_NormalizeChannel(channels[CHASSIS_SBUS_VX_CH]) * CHASSIS_MAX_VX_MPS;
-    radps_cmd = ChassisMotor_NormalizeSteerChannel(channels[CHASSIS_SBUS_DM_RADPS_CH]) * CHASSIS_MAX_STEER_RAD;
+    steer_rad = ChassisMotor_NormalizeSteerChannel(channels[CHASSIS_SBUS_DM_RADPS_CH]) * CHASSIS_MAX_STEER_RAD;
     // wz_cmd = ChassisMotor_NormalizeChannel(channels[CHASSIS_SBUS_WZ_CH]) * CHASSIS_MAX_WZ_RADPS;
 
-    ChassisMotor_SetAckermann(vx_cmd, radps_cmd);
+    ChassisMotor_SetAckermann(vx_cmd, steer_rad);
 }
 
 static uint8_t ChassisMotor_Stop(ChassisMotor_t *motor) {

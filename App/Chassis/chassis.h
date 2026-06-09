@@ -34,6 +34,7 @@ extern "C" {
 #define CHASSIS_SBUS_VX_CH    1U
 #define CHASSIS_SBUS_WZ_CH    0U
 #define CHASSIS_SBUS_DM_RADPS_CH   3U
+#define CHASSIS_MODE_CHECK_SW_CH 4U
 
 // SBUS输入的最小值、中心值、最大值和死区  Minimum, center, maximum, and deadband for remote control input
 #define CHASSIS_SBUS_MIN      300U
@@ -139,6 +140,8 @@ void ChassisMotor_InitAll(void);
 void ChassisMotor_CANRxDispatch(Struct_CAN_Rx_Buffer *rx_buffer);
 
 float ChassisMotor_GetFeedbackRpm(ChassisWheel_e wheel);
+float ChassisMotor_NormalizeChannel(uint16_t channel);
+float ChassisMotor_NormalizeSteerChannel(uint16_t channel);
 void ChassisMotor_SetWheelTargetRpm(ChassisWheel_e wheel, float wheel_rpm);
 void ChassisMotor_SetChassisSpeed(float vx_mps, float wz_radps);
 void ChassisMotor_SetAckermann(float vx_mps, float dm_radps);

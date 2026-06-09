@@ -4,6 +4,7 @@
 #include "stdint.h"
 #include "drv_uart.h"
 #include "usart.h"
+#include <stdbool.h>
 
 #define SBUS_SIGNAL_OK          0x00
 #define SBUS_SIGNAL_LOST        0x01
@@ -28,7 +29,13 @@ typedef struct Motion_Parameters {
 
 void SBUS_DMA_Start(UART_HandleTypeDef *huart);
 void SBUS_Receive(uint8_t data);
+
+bool SBUS_GetChannels(uint16_t out[], uint16_t len);
+bool SBUS_IsFailsafe(void);
+
 void SBUS_Handle(void);
+
+
 // void Linear_Mapping(uint16_t g_sbus_channels[]);
 
 #endif /* BSP_SBUS_H_ */

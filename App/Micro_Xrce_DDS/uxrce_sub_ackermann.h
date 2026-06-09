@@ -23,6 +23,6 @@ int Subscribe_Ackermann_Init(uxrSession* session,
 void Uxrce_SubAckermann_OnTopic(ucdrBuffer* ub, AckermannDriveCmd* cmd);
 
 
-bool Uxrce_SubAckermann_GetLatest(AckermannDriveCmd* out);
+bool Uxrce_SubAckermann_GetLatest(AckermannDriveCmd* out, uint32_t tick);
 
 #endif

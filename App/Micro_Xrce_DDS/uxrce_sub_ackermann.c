@@ -1,5 +1,7 @@
+#include "main.h"
 #include "uxrce_app.h"
 #include <stdbool.h>
+#include <stdint.h>
 #include <uxr/client/client.h>
 
 #include <string.h>
@@ -12,6 +14,7 @@
 
 static AckermannDriveCmd* latest_cmd;
 static volatile bool has_new_cmd = false;
+static uint32_t lastest_tick = 0;
 
 static bool Uxrce_SubAckermann_Deserialize(
     ucdrBuffer* ub,
@@ -99,10 +102,11 @@ void Uxrce_SubAckermann_OnTopic(ucdrBuffer* ub, AckermannDriveCmd* cmd)
     if (!ub->error) {
         latest_cmd = cmd;
         has_new_cmd = true;
+        lastest_tick = HAL_GetTick();
     }
 }
 
-bool Uxrce_SubAckermann_GetLatest(AckermannDriveCmd* out)
+bool Uxrce_SubAckermann_GetLatest(AckermannDriveCmd* out, uint32_t tick)
 {
     if (!has_new_cmd) {
         return false;
@@ -110,5 +114,7 @@ bool Uxrce_SubAckermann_GetLatest(AckermannDriveCmd* out)
 
     *out = *latest_cmd;
     has_new_cmd = false;
+    tick = lastest_tick;
+
     return true;
 }

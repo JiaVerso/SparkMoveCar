@@ -52,6 +52,7 @@
 #include "chassis.h"
 #include "uxrce_transport_uart.h"
 #include "uxrce_app.h"
+#include "chassis_control.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -260,6 +261,7 @@ int main(void)
 
   // VOFA_Init();
   ChassisMotor_InitAll();
+  uxrce_app_init();
   
 
   // imu_init(0x22, 0x23, &hcan1);
@@ -316,7 +318,9 @@ int main(void)
     // comm_can_set_rpm(22, 8000.0f);
     // comm_can_set_rpm(25, 8000.0f);
     // comm_can_set_rpm(&hcan1, 26, 4000.0f);
-  
+    
+    uxrce_app_loop();
+    ChassisControl_Update();
     ChassisMotor_ControlLoop();
 
     // pos_speed_ctrl(&hcan2, MOTOR_LEFT_CANID, 0.0f, 1.0f);
@@ -365,9 +369,8 @@ int main(void)
     // }
 
     // Plotter_SendData(&my_plotter);
-    uxrce_app_loop();
 
-    HAL_Delay(50);
+    HAL_Delay(1);
   }
   /* USER CODE END 3 */
 }

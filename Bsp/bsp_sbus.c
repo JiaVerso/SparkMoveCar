@@ -3,7 +3,6 @@
 #include "stdio.h"
 #include "chassis.h"
 
-
 #define SBUS_RECV_MAX    25
 #define SBUS_START       0x0F
 #define SBUS_END         0x00
@@ -108,6 +107,23 @@ static int SBUS_Parse_Data(void)
     return failsafe_status;
 }
 
+// 提供接口供外部访问 SBUS 原始数据 Interface for external access to raw SBUS data
+bool SBUS_GetChannels(uint16_t out[], uint16_t len)
+{
+    if (out == NULL || len > CHASSIS_SBUS_CH_COUNT) {
+        return false;
+    }
+
+    memcpy(out, g_sbus_channels, len * sizeof(uint16_t));
+    return true;
+}
+
+// 提供接口供外部访问 SBUS 失联/错误状态 Interface for external access to SBUS failsafe/lost status
+bool SBUS_IsFailsafe(void)
+{
+    return (failsafe_status == SBUS_SIGNAL_OK ? false : true);
+} 
+
 //  SBUS接收处理数据
 void SBUS_Handle(void)
 {
@@ -141,7 +157,7 @@ void SBUS_Handle(void)
         // UART_Send_Data(&huart8, (uint8_t *)msg, len);
         
         // 将SBUS协议转换成PWM，传递给电机控制函数  The SBUS protocol is converted to PWM and passed to the motor control function
-        ChassisMotor_UpdateFromSbusChannels(g_sbus_channels);
+        // ChassisMotor_UpdateFromSbusChannels(g_sbus_channels);
 
         #endif
     }

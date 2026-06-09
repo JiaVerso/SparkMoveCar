@@ -123,3 +123,6 @@ git checkout HEAD~1
 git stash pop
 11. 栈溢出：在启动文件中将设置为bl entry 所以先进入rtos创建的main线程栈，这个栈里用来存储局部变量、返回地址、函数调用占用的内存等。主要原因是栈溢出读取到了被rtos初始化的内存区域，RT-Thread 初始化线程栈时会用 # 填充栈空间。dds topic 和 ros2 topic 类型不一样，所以无法直接读取到，需要将原生的fastdds rt/helloworld 改为 ros2 类型下的topic。需要改topic 和 datawrite 的xml文件，并且序列化也要改为std_msgs/String格式。
 agent启动命令--> sudo MicroXRCEAgent serial --dev /dev/ttyUSB0 -b 115200 -v6
+12. 不建议在外部中直接读取文件内部的变量，把变量留在函数内部，外部提供函数进行读取。好处是可以保留变量的原始状态
+以及外部只能读取memcpy后的数据，不能修改原始数据。
+ros2 topic pub -r 10 /ackermann/speed ackermann_msgs/msg/AckermannDrive "{steering_angle: 0.1, steering_angle_velocity: 0.0, speed: 0.2, acceleration: 0.0, jerk: 0.0}"
