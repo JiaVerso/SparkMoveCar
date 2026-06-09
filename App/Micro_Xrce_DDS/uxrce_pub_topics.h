@@ -56,8 +56,15 @@ uint32_t HelloWorld_size_of_topic(
         const HelloWorld* topic,
         uint32_t size); 
 
-int Publish_HelloWorld_Init(uxrCustomTransport* transport, int argc, char** argv);
-void Publish_HelloWorld_Loop(void);
+int Publish_HelloWorld_Init(uxrSession* session,
+                            uxrStreamId reliable_out,
+                            uxrStreamId reliable_in,
+                            uxrObjectId participant_id);
+
+void Publish_HelloWorld_Loop(uxrSession* session,
+                            uxrStreamId reliable_out,
+                            uxrObjectId datawriter_id,
+                            uxrObjectId participant_id);
 
 #ifdef __cplusplus
 }

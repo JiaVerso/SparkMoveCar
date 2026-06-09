@@ -30,14 +30,11 @@
 #define STREAM_HISTORY  8
 #define BUFFER_SIZE     1024
 
-uxrSession session;
 
 uint8_t output_reliable_stream_buffer[BUFFER_SIZE];
 uint8_t input_reliable_stream_buffer[BUFFER_SIZE];
 
-static uxrStreamId reliable_out;
 static uxrObjectId datawriter_id;
-static uxrObjectId participant_id;
 
 static bool connected =false;
 
@@ -95,43 +92,13 @@ uint32_t HelloWorld_size_of_topic(
     return size - previousSize;
 }
 
-int Publish_HelloWorld_Init(uxrCustomTransport* transport, int argc, char** argv)
+int Publish_HelloWorld_Init(uxrSession* session,
+                            uxrStreamId reliable_out,
+                            uxrStreamId reliable_in,
+                            uxrObjectId participant_id)
 {
     // transport already initialized on uxrce_ping_test_()
     
-    // Session
-    uxr_init_session(&session, &transport->comm, 0xAAAABBBB);
-    if (!uxr_create_session(&session))
-    {
-        // printf("Error at create session.\n");
-        // uxrce_blink(LED_RED_GPIO_Port, LED_RED_Pin, 5, 100);
-        return 1;
-    }
-
-    // Streams
-    reliable_out =
-        uxr_create_output_reliable_stream(&session,
-                                        output_reliable_stream_buffer,
-                                        BUFFER_SIZE,
-                                        STREAM_HISTORY);
-
-    uxr_create_input_reliable_stream(&session,
-                                    input_reliable_stream_buffer,
-                                    BUFFER_SIZE,
-                                    STREAM_HISTORY);
-
-    // Create entities
-    participant_id = uxr_object_id(0x01, UXR_PARTICIPANT_ID);
-    const char* participant_xml = "<dds>"
-            "<participant>"
-            "<rtps>"
-            "<name>default_xrce_participant</name>"
-            "</rtps>"
-            "</participant>"
-            "</dds>";
-    uint16_t participant_req = uxr_buffer_create_participant_xml(&session, reliable_out, participant_id, 0,
-                    participant_xml, UXR_REPLACE);
-
     uxrObjectId topic_id = uxr_object_id(0x01, UXR_TOPIC_ID);
     const char* topic_xml = "<dds>"
             "<topic>"
@@ -139,12 +106,12 @@ int Publish_HelloWorld_Init(uxrCustomTransport* transport, int argc, char** argv
             "<dataType>std_msgs::msg::dds_::String_</dataType>"
             "</topic>"
             "</dds>";
-    uint16_t topic_req = uxr_buffer_create_topic_xml(&session, reliable_out, topic_id, participant_id, topic_xml,
+    uint16_t topic_req = uxr_buffer_create_topic_xml(session, reliable_out, topic_id, participant_id, topic_xml,
                     UXR_REPLACE);
 
     uxrObjectId publisher_id = uxr_object_id(0x01, UXR_PUBLISHER_ID);
     const char* publisher_xml = "";
-    uint16_t publisher_req = uxr_buffer_create_publisher_xml(&session, reliable_out, publisher_id, participant_id,
+    uint16_t publisher_req = uxr_buffer_create_publisher_xml(session, reliable_out, publisher_id, participant_id,
                     publisher_xml, UXR_REPLACE);
 
     datawriter_id = uxr_object_id(0x01, UXR_DATAWRITER_ID);
@@ -157,38 +124,37 @@ int Publish_HelloWorld_Init(uxrCustomTransport* transport, int argc, char** argv
             "</topic>"
             "</data_writer>"
             "</dds>";
-    uint16_t datawriter_req = uxr_buffer_create_datawriter_xml(&session, reliable_out, datawriter_id, publisher_id,
+    uint16_t datawriter_req = uxr_buffer_create_datawriter_xml(session, reliable_out, datawriter_id, publisher_id,
                     datawriter_xml, UXR_REPLACE);
 
     // Send create entities message and wait its status
 
-    uint8_t status[4];
-    uint16_t requests[4] = {
-        participant_req,
+    uint8_t status[3];
+    uint16_t requests[3] = {
         topic_req,
         publisher_req,
         datawriter_req
     };
-    if (!uxr_run_session_until_all_status(&session, 1000, requests, status, 4))
+    if (!uxr_run_session_until_all_status(session, 1000, requests, status, 3))
     {
         printf("Error at create entities: participant: %u \r\n ", status[0]);
         printf("Error at create entities: topic: %u \r\n ", status[1]);
         printf("Error at create entities: publisher: %u \r\n ", status[2]);
-        printf("Error at create entities: datawriter: %u \r\n ", status[3]);
         // uxrce_blink(LED_RED_GPIO_Port, LED_RED_Pin, 5, 100);
         return 1;
     }
+
     connected = true;
     return 0;
-
-    // Delete resources
-    // uxr_delete_session(&session);
 
     // Clean up transport and session here (not shown for brevity)
 
 }
 
-void Publish_HelloWorld_Loop(void)
+void Publish_HelloWorld_Loop(uxrSession* session,
+                            uxrStreamId reliable_out,
+                            uxrObjectId datawriter_id,
+                            uxrObjectId participant_id)
 {
 
     if (!connected)
@@ -202,9 +168,9 @@ void Publish_HelloWorld_Loop(void)
 
     ucdrBuffer ub;
     uint32_t topic_size = StdString_size_of_topic(msg, 0);
-    uxr_prepare_output_stream(&session, reliable_out, datawriter_id, &ub, topic_size);
+    uxr_prepare_output_stream(session, reliable_out, datawriter_id, &ub, topic_size);
     StdString_serialize_topic(&ub, msg);
 
     // printf("Send topic: %s, id: %i\n", topic.message, topic.index);
-    connected = uxr_run_session_time(&session, 1000);
+    connected = uxr_run_session_time(session, 1000);
 }

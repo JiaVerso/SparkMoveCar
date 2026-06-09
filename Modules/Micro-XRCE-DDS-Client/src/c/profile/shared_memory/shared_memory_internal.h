@@ -51,7 +51,7 @@ void uxr_prepare_shared_memory(
         uint16_t data_size,
         uint16_t request_id);
 
-void uxr_handle_shared_memory();
+void uxr_handle_shared_memory(void);
 
 void uxr_add_shared_memory_entity_xml(
         uxrSession* session,
@@ -63,7 +63,7 @@ void uxr_add_shared_memory_entity_bin(
         uxrObjectId entity_id,
         const void* entity);
 
-void uxr_clean_shared_memory();
+void uxr_clean_shared_memory(void);
 
 #ifdef __cplusplus
 }

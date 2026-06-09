@@ -259,7 +259,7 @@ int main(void)
   // HAL_Delay(500);
 
   // VOFA_Init();
-  // ChassisMotor_InitAll();
+  ChassisMotor_InitAll();
   
 
   // imu_init(0x22, 0x23, &hcan1);
@@ -317,7 +317,7 @@ int main(void)
     // comm_can_set_rpm(25, 8000.0f);
     // comm_can_set_rpm(&hcan1, 26, 4000.0f);
   
-    // ChassisMotor_ControlLoop();
+    ChassisMotor_ControlLoop();
 
     // pos_speed_ctrl(&hcan2, MOTOR_LEFT_CANID, 0.0f, 1.0f);
     // pos_speed_ctrl(&hcan2, MOTOR_RIGHT_CANID, 0.0f, 1.0f);
