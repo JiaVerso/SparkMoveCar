@@ -62,9 +62,7 @@ int Publish_HelloWorld_Init(uxrSession* session,
                             uxrObjectId participant_id);
 
 void Publish_HelloWorld_Loop(uxrSession* session,
-                            uxrStreamId reliable_out,
-                            uxrObjectId datawriter_id,
-                            uxrObjectId participant_id);
+                            uxrStreamId reliable_out);
 
 #ifdef __cplusplus
 }

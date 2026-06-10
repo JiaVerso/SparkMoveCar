@@ -8,11 +8,12 @@
 #include <ucdr/microcdr.h>
 #include <stdio.h>
 
+#include "uxrce_app.h"
 #include "uxrce_sub_ackermann.h"
 #include "uxrce_pub_topics.h"
 #include "uxrce_transport_uart.h"
 
-static AckermannDriveCmd* latest_cmd;
+static AckermannDriveCmd latest_cmd;
 static volatile bool has_new_cmd = false;
 static uint32_t lastest_tick = 0;
 
@@ -100,21 +101,21 @@ void Uxrce_SubAckermann_OnTopic(ucdrBuffer* ub, AckermannDriveCmd* cmd)
     Uxrce_SubAckermann_Deserialize(ub, cmd);
 
     if (!ub->error) {
-        latest_cmd = cmd;
+        latest_cmd = *cmd;
         has_new_cmd = true;
         lastest_tick = HAL_GetTick();
     }
+    
 }
 
-bool Uxrce_SubAckermann_GetLatest(AckermannDriveCmd* out, uint32_t tick)
+bool Uxrce_SubAckermann_GetLatest(AckermannDriveCmd* out, uint32_t* tick)
 {
     if (!has_new_cmd) {
         return false;
     }
 
-    *out = *latest_cmd;
-    has_new_cmd = false;
-    tick = lastest_tick;
+    *out = latest_cmd;
+    *tick = lastest_tick;
 
     return true;
 }

@@ -152,9 +152,7 @@ int Publish_HelloWorld_Init(uxrSession* session,
 }
 
 void Publish_HelloWorld_Loop(uxrSession* session,
-                            uxrStreamId reliable_out,
-                            uxrObjectId datawriter_id,
-                            uxrObjectId participant_id)
+                            uxrStreamId reliable_out)
 {
 
     if (!connected)

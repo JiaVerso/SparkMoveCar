@@ -234,10 +234,8 @@ int main(void)
   
   Uart_Init(&huart7, debug_rx_dma_buf, sizeof(debug_rx_dma_buf), SerialDebug_Call_Back);
 
-  uxrce_app_init();
-
   // PID_Init(&pid_speed, 0.0f, 0.0f, 0.0f, 0.0f,2500.0f, 2500.0f);
-
+  
   // uart_rx_fifo = fifo_s_create(2048);
   // HAL_UARTEx_ReceiveToIdle_DMA(&huart8, USART8_Rx_buf, RX_BUF_SIZE);
 
@@ -263,7 +261,6 @@ int main(void)
   ChassisMotor_InitAll();
   uxrce_app_init();
   
-
   // imu_init(0x22, 0x23, &hcan1);
 
   // imu_change_to_active();       

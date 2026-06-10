@@ -126,3 +126,7 @@ agent启动命令--> sudo MicroXRCEAgent serial --dev /dev/ttyUSB0 -b 115200 -v6
 12. 不建议在外部中直接读取文件内部的变量，把变量留在函数内部，外部提供函数进行读取。好处是可以保留变量的原始状态
 以及外部只能读取memcpy后的数据，不能修改原始数据。
 ros2 topic pub -r 10 /ackermann/speed ackermann_msgs/msg/AckermannDrive "{steering_angle: 0.1, steering_angle_velocity: 0.0, speed: 0.2, acceleration: 0.0, jerk: 0.0}"
+13. 函数参数默认值传递，比如外部声明tick,函数参数传入tick，其实是传入tick_copy，本身的外部tick没有被更改，只有传指针，得到的值才会变化。
+14. ！！！ 值传递时候，函数退出，临时局部变量失效，如果定义指针保存该临时局部地址，就会发生错误。
+比如AckermannDriveCmd topic;
+        Uxrce_SubAckermann_OnTopic(ub, &topic); 值传递时传递的是临时拷贝的topic_copy，变量latest_cmd = cmd;保存的是临时局部地址，当函数退出，latest_cmd没有被使用，则会出错。如果指针保存的不是地址，而是变量值 ，则不会有问题

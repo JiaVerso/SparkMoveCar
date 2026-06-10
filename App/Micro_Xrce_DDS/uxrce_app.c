@@ -1,5 +1,7 @@
 #include "uxrce_app.h"
+#include "stm32f4xx_hal.h"
 #include "usart.h"
+#include <stdbool.h>
 #include <uxr/client/client.h>
 #include "gpio.h"
 
@@ -12,7 +14,7 @@
 #include "uxrce_sub_ackermann.h"
 
 #define STREAM_HISTORY  8
-#define BUFFER_SIZE     1024
+#define BUFFER_SIZE     2048
 
 uxrCustomTransport transport;
 
@@ -25,6 +27,8 @@ static uxrSession session;
 static uxrStreamId reliable_out;
 static uxrStreamId reliable_in;
 static uxrObjectId participant_id;
+
+static volatile bool session_ok =false;
 
 static uint8_t output_reliable_stream_buffer[BUFFER_SIZE];
 static uint8_t input_reliable_stream_buffer[BUFFER_SIZE];
@@ -68,9 +72,19 @@ void uxrce_app_init(void) {
     // 初始化会话 Session initialization
     uxr_init_session(&session, &transport.comm, 0xAAAABBBB);
     uxr_set_topic_callback(&session, uxrce_app_on_topic, NULL);
-    if (!uxr_create_session(&session))
-    {
-        printf("Error at create session.\n");
+
+    for (int i = 0; i < 10; i++) {
+        if (uxr_create_session(&session)) {
+            session_ok = true;
+            break;
+        }
+        printf("create session retry \r\n");
+        HAL_Delay(300);
+    }
+
+    if (!session_ok) {
+        printf("create session failed\r\n");
+        return;
     }
 
     // 创建 reliable 流 Create reliable streams
@@ -98,12 +112,19 @@ void uxrce_app_init(void) {
                     participant_xml, UXR_REPLACE);
     (void) participant_req;
 
-    Publish_HelloWorld_Init(&session, reliable_out, reliable_in, participant_id);
+    // Publish_HelloWorld_Init(&session, reliable_out, reliable_in, participant_id);
     Subscribe_Ackermann_Init(&session, reliable_out, reliable_in, participant_id);
+
+    HAL_Delay(300);
 }
 
-
 void uxrce_app_loop(void) {
-    // write topics
-    uxr_run_session_time(&session, 10);
+    
+     if (!session_ok) {
+        return;
+    }
+    // pub xrce
+    // Publish_HelloWorld_Loop(&session, reliable_out);
+    // sub ackermann
+    uxr_run_session_time(&session, 5);
 }

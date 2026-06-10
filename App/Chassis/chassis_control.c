@@ -15,11 +15,12 @@
 #include <string.h>
 
 #include "chassis.h"
+#include "uxrce_app.h"
 #include "bsp_sbus.h"
 #include "chassis_control.h"
 #include "uxrce_sub_ackermann.h"
 
-#define CHASSIS_AUTO_TIMEOUT_MS 3000U
+#define CHASSIS_AUTO_TIMEOUT_MS 30000U
 
 static uint32_t tick;
 static uint16_t channels[CHASSIS_SBUS_CH_COUNT] = {0};
@@ -29,7 +30,7 @@ static AckermannDriveCmd out;
 // 模式判断
 static uint16_t ChassisControl_GetModeFromSbus(void)
 {
-    if (SBUS_IsFailsafe() || !SBUS_GetChannels(channels, CHASSIS_SBUS_CH_COUNT)) {
+    if (!SBUS_GetChannels(channels, CHASSIS_SBUS_CH_COUNT)) {
         return CHASSIS_CTRL_FASTSTOP;
     }
 
@@ -64,7 +65,7 @@ static bool ChassisControl_GetAutoCmd(ChassisAckermannCmd *cmd)
         return false;
     }
 
-    if (!Uxrce_SubAckermann_GetLatest(&out, tick)) {
+    if (!Uxrce_SubAckermann_GetLatest(&out, &tick)) {
         return false;
     }
 
@@ -75,6 +76,10 @@ static bool ChassisControl_GetAutoCmd(ChassisAckermannCmd *cmd)
     cmd->steer_rad = out.steering_angle;
     cmd->valid = true;
 
+    int32_t cmd_speed = (int32_t)(cmd->vx_mps * 100.0f);
+    int32_t cmd_steer = (int32_t)(cmd->steer_rad * 100.0f);
+
+    printf("auto cmd speed=%ld steer=%ld\r\n", (long)cmd_speed, (long)cmd_steer);
     return true;
 }
 
@@ -84,10 +89,10 @@ void ChassisControl_Update(void)
 
     ChassisCtrlMode mode = ChassisControl_GetModeFromSbus();
 
-    if (SBUS_IsFailsafe()) {
-        ChassisMotor_SetAckermann(0.0f, 0.0f);
-        return;
-    }
+    // if (SBUS_IsFailsafe()) {
+    //     ChassisMotor_SetAckermann(0.0f, 0.0f);
+    //     return;
+    // }
 
     switch (mode) {
     case CHASSIS_CTRL_MANUAL:
