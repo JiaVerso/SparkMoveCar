@@ -74,7 +74,7 @@ extern "C" {
 // C620电机的电流限制，单位是mA  Current limit for C620 motors, in mA
 #define CHASSIS_C620_CURRENT_LIMIT    6000.0f
 // 斜坡启动限制 Ramp-up limit for target speed changes, in RPM per control loop
-#define CHASSIS_TARGET_RPM_STEP 5.0f
+#define CHASSIS_TARGET_RPM_STEP 4.0f
 
 // 电机类型枚举  Motor type enumeration
 typedef enum {

@@ -45,7 +45,7 @@ int Subscribe_Ackermann_Init(uxrSession* session,
     uxrObjectId topic_id = uxr_object_id(0x02, UXR_TOPIC_ID);
     const char* topic_xml = "<dds>"
             "<topic>"
-            "<name>rt/ackermann/speed</name>"
+            "<name>rt/ackermann_cmd</name>"
             "<dataType>ackermann_msgs::msg::dds_::AckermannDrive_</dataType>"
             "</topic>"
             "</dds>";
@@ -62,7 +62,7 @@ int Subscribe_Ackermann_Init(uxrSession* session,
             "<data_reader>"
             "<topic>"
             "<kind>NO_KEY</kind>"
-            "<name>rt/ackermann/speed</name>"
+            "<name>rt/ackermann_cmd</name>"
             "<dataType>ackermann_msgs::msg::dds_::AckermannDrive_</dataType>"
             "</topic>"
             "</data_reader>"
