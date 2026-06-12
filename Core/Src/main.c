@@ -252,7 +252,7 @@ int main(void)
   dm4310_motor_init(&hcan2, &motor[Motor1], MOTOR_LEFT_CANID, 1);
   dm4310_motor_init(&hcan2, &motor[Motor2], MOTOR_RIGHT_CANID, 1);
   ctrl_enable(Motor_ALL_Status_ENABLED);
-  HAL_Delay(200);
+  HAL_Delay(100);
   // save_pos_zero(&hcan2, MOTOR_LEFT_CANID, POS_MODE);
   // save_pos_zero(&hcan2, MOTOR_RIGHT_CANID, POS_MODE);
   // HAL_Delay(500);
@@ -318,6 +318,14 @@ int main(void)
     
     uxrce_app_loop();
     ChassisControl_Update();
+    if (SBUS_HasNewFrame()) {
+      uint16_t sbus_channels[CHASSIS_SBUS_CH_COUNT] = {0};
+
+      if (SBUS_GetChannels(sbus_channels, CHASSIS_SBUS_CH_COUNT)) {
+        ChassisMotor_UpdateFromSbusChannels(sbus_channels);
+      }
+      SBUS_ClearNewFrame();
+    }
     ChassisMotor_ControlLoop();
 
     // pos_speed_ctrl(&hcan2, MOTOR_LEFT_CANID, 0.0f, 1.0f);
@@ -367,7 +375,7 @@ int main(void)
 
     // Plotter_SendData(&my_plotter);
 
-    HAL_Delay(1);
+    HAL_Delay(10);
   }
   /* USER CODE END 3 */
 }

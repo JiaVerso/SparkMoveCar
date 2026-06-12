@@ -72,7 +72,7 @@ void dm4310_fbdata(dm_motor_t *motor, uint8_t *rx_data);
 void enable_motor_mode(CAN_HandleTypeDef *hcan, uint16_t motor_id, uint16_t mode_id);
 void disable_motor_mode(CAN_HandleTypeDef *hcan, uint16_t motor_id, uint16_t mode_id);
 void mit_ctrl(CAN_HandleTypeDef *hcan, uint16_t motor_id, float pos, float vel,float kp, float kd, float torq);
-void pos_speed_ctrl(CAN_HandleTypeDef *hcan,uint16_t motor_id, float pos, float vel);
+uint8_t pos_speed_ctrl(CAN_HandleTypeDef *hcan, uint16_t motor_id, float pos, float vel);
 void speed_ctrl(CAN_HandleTypeDef *hcan, uint16_t motor_id, float _vel);
 void save_pos_zero(CAN_HandleTypeDef *hcan, uint16_t motor_id, uint16_t mode_id);
 void clear_err(CAN_HandleTypeDef *hcan, uint16_t motor_id, uint16_t mode_id);

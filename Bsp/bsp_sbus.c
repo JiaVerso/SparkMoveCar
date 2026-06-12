@@ -27,6 +27,7 @@ static uint8_t failsafe_status = SBUS_SIGNAL_FAILSAFE;
 
 static uint8_t sbus_data[SBUS_RECV_MAX] = {0};
 static uint16_t g_sbus_channels[18] = {0};
+static volatile bool sbus_frame_ready = false;
 
 // SBUS DMA start function  SBUS DMA启动函数
 void SBUS_DMA_Start(UART_HandleTypeDef *huart)
@@ -122,7 +123,17 @@ bool SBUS_GetChannels(uint16_t out[], uint16_t len)
 bool SBUS_IsFailsafe(void)
 {
     return (failsafe_status == SBUS_SIGNAL_OK ? false : true);
-} 
+}
+
+bool SBUS_HasNewFrame(void)
+{
+    return sbus_frame_ready;
+}
+
+void SBUS_ClearNewFrame(void)
+{
+    sbus_frame_ready = false;
+}
 
 //  SBUS接收处理数据
 void SBUS_Handle(void)
@@ -131,7 +142,11 @@ void SBUS_Handle(void)
     {
         int res = SBUS_Parse_Data();
         sbus_new_cmd = 0;
-        if (res) return;
+        if (res) {
+            sbus_frame_ready = false;
+            return;
+        }
+        sbus_frame_ready = true;
 
         #if SBUS_ALL_CHANNELS
         
@@ -157,7 +172,6 @@ void SBUS_Handle(void)
         // UART_Send_Data(&huart8, (uint8_t *)msg, len);
         
         // 将SBUS协议转换成PWM，传递给电机控制函数  The SBUS protocol is converted to PWM and passed to the motor control function
-        // ChassisMotor_UpdateFromSbusChannels(g_sbus_channels);
 
         #endif
     }

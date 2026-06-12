@@ -215,7 +215,7 @@ void enable_motor_mode(CAN_HandleTypeDef* hcan, uint16_t motor_id, uint16_t mode
 	data[6] = 0xFF;
 	data[7] = 0xFC;
 	
-    CAN_Send_Data(&hcan2, id, data, 8);
+    CAN_Send_Data(hcan, id, data, 8);
 }
 /**
 ************************************************************************
@@ -241,7 +241,7 @@ void disable_motor_mode(CAN_HandleTypeDef* hcan, uint16_t motor_id, uint16_t mod
 	data[6] = 0xFF;
 	data[7] = 0xFD;
 	
-	CAN_Send_Data(&hcan1, id, data, 8);
+	CAN_Send_Data(hcan, id, data, 8);
 }
 /**
 ************************************************************************
@@ -267,7 +267,7 @@ void save_pos_zero(CAN_HandleTypeDef* hcan, uint16_t motor_id, uint16_t mode_id)
 	data[6] = 0xFF;
 	data[7] = 0xFE;
 	
-	CAN_Send_Data(&hcan2, id, data, 8);
+	CAN_Send_Data(hcan, id, data, 8);
 }
 /**
 ************************************************************************
@@ -293,7 +293,7 @@ void clear_err(CAN_HandleTypeDef* hcan, uint16_t motor_id, uint16_t mode_id)
 	data[6] = 0xFF;
 	data[7] = 0xFB;
 	
-	CAN_Send_Data(&hcan1, id, data, 8);
+	CAN_Send_Data(hcan, id, data, 8);
 }
 /**
 ************************************************************************
@@ -342,7 +342,7 @@ void mit_ctrl(CAN_HandleTypeDef* hcan, uint16_t motor_id, float pos, float vel,f
 * @details:    	通过CAN总线向电机发送位置速度控制命令
 ************************************************************************
 **/
-void pos_speed_ctrl(CAN_HandleTypeDef* hcan, uint16_t motor_id, float pos, float vel)
+uint8_t pos_speed_ctrl(CAN_HandleTypeDef* hcan, uint16_t motor_id, float pos, float vel)
 {
 	uint16_t id;
 	uint8_t data[8];
@@ -362,7 +362,7 @@ void pos_speed_ctrl(CAN_HandleTypeDef* hcan, uint16_t motor_id, float pos, float
     data[7] = my_converter.bytes[7];
 
 	
-	CAN_Send_Data(&hcan2, id, data, 8);
+	return CAN_Send_Data(hcan, id, data, 8);
 }
 /**
 ************************************************************************
@@ -388,5 +388,5 @@ void speed_ctrl(CAN_HandleTypeDef* hcan,uint16_t motor_id, float vel)
 	data[2] = *(vbuf+2);
 	data[3] = *(vbuf+3);
 	
-	CAN_Send_Data(&hcan1, id, data, 8);
+	CAN_Send_Data(hcan, id, data, 8);
 }

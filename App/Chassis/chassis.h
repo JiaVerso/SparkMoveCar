@@ -27,7 +27,7 @@ extern "C" {
 #define ALL_MOTORS 0x01
 #define ALL_MOTOR_COUNT 6U
 
-#define CHASSIS_MOTOR_COUNT 6U
+#define CHASSIS_MOTOR_COUNT 4U
 
 // 遥控输入通道数量  Number of remote control input channels
 #define CHASSIS_SBUS_CH_COUNT 8U
@@ -63,6 +63,8 @@ extern "C" {
 #define CHASSIS_MID_TRACK_WIDTH_M 0.600f
 // 最大转向角，单位是弧度 Maximum steering angle in radians
 #define CHASSIS_MAX_STEER_RAD    0.400f
+#define CHASSIS_DM_STEER_SPEED_RADPS 1.0f
+#define CHASSIS_DM_STEER_SEND_PERIOD_MS 10U
 
 #define CHASSIS_VESC_POLE_PAIRS  7.0f
 // VESC的减速比，电机转速 / 轮子转速  The gear ratio for VESC, motor speed / wheel speed
@@ -70,11 +72,11 @@ extern "C" {
 #define CHASSIS_C620_GEAR_RATIO  19.203f
 
 // 电流限制 Current limits
-#define CHASSIS_VESC_CURRENT_LIMIT_A  10.0f
+#define CHASSIS_VESC_CURRENT_LIMIT_A  6.0f
 // C620电机的电流限制，单位是mA  Current limit for C620 motors, in mA
 #define CHASSIS_C620_CURRENT_LIMIT    6000.0f
 // 斜坡启动限制 Ramp-up limit for target speed changes, in RPM per control loop
-#define CHASSIS_TARGET_RPM_STEP 4.0f
+#define CHASSIS_TARGET_RPM_STEP 2.0f
 
 // 电机类型枚举  Motor type enumeration
 typedef enum {
@@ -149,9 +151,10 @@ void ChassisMotor_EmergencyStop(void);
 void ChassisMotor_UpdateFromSbusChannels(const uint16_t channels[CHASSIS_SBUS_CH_COUNT]);
 
 void ChassisMotor_ControlLoop(void);
-void ChassisMotor_SendCurrent(ChassisMotor_t *motor);
+uint8_t ChassisMotor_SendCurrent(ChassisMotor_t *motor);
 void ChassisMotor_SendAllCurrent(void);
 void ChassisMotor_SendAllCurrent_Section(void);
+void ChassisMotor_SendCurrent_VESC(void);
 
 #ifdef __cplusplus
 }

@@ -25,6 +25,10 @@
 // 设置 DM4310 电机阿克曼转向角度  Set the Ackermann steering angle for DM4310 motors
 extern CAN_HandleTypeDef hcan2;
 
+static volatile uint32_t ChassisMotor_DmSteerSkipCount = 0U;
+static volatile uint32_t ChassisMotor_DmSteerLeftFailCount = 0U;
+static volatile uint32_t ChassisMotor_DmSteerRightFailCount = 0U;
+
 // 将数值限制在[-limit, limit]范围内  Clamp a value to the range [-limit, limit]
 static float ChassisMotor_Clamp(float value, float limit)
 {
@@ -124,6 +128,30 @@ static ChassisMotor_t *ChassisMotor_FindVescByExtId(uint32_t ext_id)
     return NULL;
 }
 
+static void ChassisMotor_SendSteerPair(float left_rad, float right_rad, float vel_radps)
+{
+    static uint32_t last_send_tick = 0U;
+    uint32_t now = HAL_GetTick();
+
+    if ((uint32_t)(now - last_send_tick) < CHASSIS_DM_STEER_SEND_PERIOD_MS) {
+        return;
+    }
+
+    if (HAL_CAN_GetTxMailboxesFreeLevel(&hcan2) < 2U) {
+        ChassisMotor_DmSteerSkipCount++;
+        return;
+    }
+
+    if (pos_speed_ctrl(&hcan2, MOTOR_LEFT_CANID, left_rad, vel_radps) != HAL_OK) {
+        ChassisMotor_DmSteerLeftFailCount++;
+    }
+    if (pos_speed_ctrl(&hcan2, MOTOR_RIGHT_CANID, right_rad, vel_radps) != HAL_OK) {
+        ChassisMotor_DmSteerRightFailCount++;
+    }
+
+    last_send_tick = now;
+}
+
 ChassisMotor_t ChassisMotor_Table[CHASSIS_MOTOR_COUNT] = {
     // 左前轮参数设置  Parameters for left front wheel
     {
@@ -176,49 +204,13 @@ ChassisMotor_t ChassisMotor_Table[CHASSIS_MOTOR_COUNT] = {
         .pid_kf = 0.08f,
         .pid_max_integral = 1.0f,
     },
-    {
+     {
         .wheel = CHASSIS_WHEEL_RB,
-        .type = CHASSIS_MOTOR_TYPE_C620,
-        .hcan = &hcan1,
-        .c620_rx_id = 0x202,
-        .c620_tx_id = 0x200,
-        .c620_tx_slot = 1,
-        .feedback_to_wheel_rpm = 1.0f / CHASSIS_C620_GEAR_RATIO,
-        .command_direction = -1.0f,
-        .current_limit = CHASSIS_C620_CURRENT_LIMIT,
-        // C620 PID output unit: DJI current command raw value, in the range of [-65535, 65535], corresponding to [-max_current, max_current]
-        .pid_kp = 50.0f,
-        .pid_ki = 0.2f,
-        .pid_kd = 0.0f,
-        .pid_kf = 2.0f,
-        .pid_max_integral = 1200.0f,
-    },
-        // 中间的两个电机轮
-   {
-        .wheel = CHASSIS_WHEEL_RM,
-        .type = CHASSIS_MOTOR_TYPE_C620,
-        .hcan = &hcan1,
-        .c620_rx_id = 0x201,
-        .c620_tx_id = 0x200,
-        .c620_tx_slot = 0,
-        .feedback_to_wheel_rpm = 1.0f / CHASSIS_C620_GEAR_RATIO,
-        .command_direction = -1.0f,
-        .current_limit = CHASSIS_C620_CURRENT_LIMIT,
-        // C620 PID output unit: DJI current command raw value, in the range of [-65535, 65535], corresponding to [-max_current, max_current]
-        .pid_kp = 50.0f,
-        .pid_ki = 0.2f,
-        .pid_kd = 0.0f,
-        .pid_kf = 2.0f,
-        .pid_max_integral = 1200.0f,
-    },
-
-    {
-        .wheel = CHASSIS_WHEEL_LM,
         .type = CHASSIS_MOTOR_TYPE_VESC,
-        .hcan = &hcan2,
+        .hcan = &hcan1,
         .vesc_id = 25,
         .feedback_to_wheel_rpm = 1.0f / (CHASSIS_VESC_POLE_PAIRS * CHASSIS_VESC_GEAR_RATIO),
-        .command_direction = -1.0f,
+        .command_direction = 1.0f,
         .current_limit = CHASSIS_VESC_CURRENT_LIMIT_A,
 
         // VESC PID output uint: ampere(A)
@@ -328,22 +320,18 @@ void ChassisMotor_SetChassisSpeed(float vx_mps, float wz_radps)
     ChassisMotor_SetWheelTargetRpm(CHASSIS_WHEEL_LB, left_wheels_rpm);
     ChassisMotor_SetWheelTargetRpm(CHASSIS_WHEEL_RF, right_wheels_rpm);
     ChassisMotor_SetWheelTargetRpm(CHASSIS_WHEEL_RB, right_wheels_rpm);
-    ChassisMotor_SetWheelTargetRpm(CHASSIS_WHEEL_LM, left_wheels_rpm);
-    ChassisMotor_SetWheelTargetRpm(CHASSIS_WHEEL_RM, right_wheels_rpm);
 }
 
 // 设置底盘的阿克曼转向角度  Set the Ackermann steering angle for the chassis
 void ChassisMotor_SetAckermann(float vx_mps, float dm_radps)
 {
-    float v_fl, v_fr, v_rl, v_rr, v_ml, v_mr; // 六轮线速度 (m/s)
+    float v_fl, v_fr, v_rl, v_rr; // 六轮线速度 (m/s)
     float radps_l, radps_r;       // 左右前轮转向角 (rad)
 
    // 直线形式 Straight line case
     if (fabs(dm_radps) < 0.10f) {
-        v_fl = v_fr = v_rl = v_rr = v_ml = v_mr = vx_mps;
+        v_fl = v_fr = v_rl = v_rr = vx_mps;
         radps_l = radps_r = 0.0f;
-        pos_speed_ctrl(&hcan2, MOTOR_LEFT_CANID, 0, 1.25f);
-        pos_speed_ctrl(&hcan2, MOTOR_RIGHT_CANID, 0, 1.25f);
     } 
     // 阿克曼转向解算
     else {
@@ -359,14 +347,12 @@ void ChassisMotor_SetAckermann(float vx_mps, float dm_radps)
         // 计算内/外前轮的实际转向角
         radps_l = atanf(CHASSIS_WHEELBASE_M / (R - CHASSIS_TRACK_WIDTH_M / 2.0f));
         radps_r = atanf(CHASSIS_WHEELBASE_M / (R + CHASSIS_TRACK_WIDTH_M / 2.0f));
+        radps_l = ChassisMotor_Clamp(radps_l, CHASSIS_MAX_STEER_RAD);
+        radps_r = ChassisMotor_Clamp(radps_r, CHASSIS_MAX_STEER_RAD);
 
         // 后轮公式：v = w * (R ± W/2)
         v_rl = w * (R - CHASSIS_TRACK_WIDTH_M / 2.0f);
         v_rr = w * (R + CHASSIS_TRACK_WIDTH_M / 2.0f);
-
-        // 中间轮速度取后轮速度 Middle wheel speed takes the rear wheel speed
-        v_ml = w * (R - CHASSIS_MID_TRACK_WIDTH_M / 2.0f);
-        v_mr = w * (R + CHASSIS_MID_TRACK_WIDTH_M / 2.0f);
         
         // 前轮公式：v = w * sqrt(L^2 + (R ± W/2)^2)
         float sign = (vx_mps >= 0) ? 1.0f : -1.0f;
@@ -379,16 +365,15 @@ void ChassisMotor_SetAckermann(float vx_mps, float dm_radps)
     const float wheel_circumference_m = CHASSIS_WHEEL_DIAMETER_M * DRIVE_PI;
     const float mps_to_rpm = 60.0f / wheel_circumference_m;
 
+    // DM4310 电机的转向控制  Steering control for DM4310 motors
+    ChassisMotor_SendSteerPair(radps_l, radps_r, CHASSIS_DM_STEER_SPEED_RADPS);
+
     ChassisMotor_SetWheelTargetRpm(CHASSIS_WHEEL_LF, v_fl * mps_to_rpm);
     ChassisMotor_SetWheelTargetRpm(CHASSIS_WHEEL_RF, v_fr * mps_to_rpm);
     ChassisMotor_SetWheelTargetRpm(CHASSIS_WHEEL_LB, v_rl * mps_to_rpm);
     ChassisMotor_SetWheelTargetRpm(CHASSIS_WHEEL_RB, v_rr * mps_to_rpm);
-    ChassisMotor_SetWheelTargetRpm(CHASSIS_WHEEL_LM, v_ml * mps_to_rpm);
-    ChassisMotor_SetWheelTargetRpm(CHASSIS_WHEEL_RM, v_mr * mps_to_rpm);
 
-    // DM4310 电机的转向控制  Steering control for DM4310 motors
-    pos_speed_ctrl(&hcan2, MOTOR_LEFT_CANID, radps_l, 1.25f);
-    pos_speed_ctrl(&hcan2, MOTOR_RIGHT_CANID, radps_r, 1.25f);
+    
 }
 
 void ChassisMotor_EmergencyStop(void)
@@ -480,28 +465,39 @@ void ChassisMotor_ControlLoop(void) {
         ChassisMotor_Clamp(motor->current_cmd, motor->current_limit);
   }
 
-    ChassisMotor_SendAllCurrent_Section();
+    ChassisMotor_SendCurrent_VESC();
 }
 
 // 发送单个电机的当前命令到对应的CAN ID  Send current command for a single motor to its corresponding CAN ID
-void ChassisMotor_SendCurrent(ChassisMotor_t *motor)
+uint8_t ChassisMotor_SendCurrent(ChassisMotor_t *motor)
 {
     int16_t c620_current;
     uint8_t data[8] = {0};
     uint8_t offset;
 
     if (motor == NULL) {
-        return;
+        return HAL_ERROR;
     }
 
     // VESC 电机直接通过专用函数发送电流命令，C620 电机需要打包成 CAN 数据帧发送  VESC motors send current commands directly through a dedicated function, while C620 motors need to be packed into CAN data frames for sending
    if (motor->type == CHASSIS_MOTOR_TYPE_VESC) {
     if (HAL_CAN_GetTxMailboxesFreeLevel(motor->hcan) > 0U) {
-        comm_can_set_current(motor->hcan,
-                             motor->vesc_id,
-                             motor->current_cmd * motor->command_direction);
+        int32_t current_ma =
+            (int32_t)(motor->current_cmd * motor->command_direction * 1000.0f);
+        uint8_t data[4] = {
+            (uint8_t)(current_ma >> 24),
+            (uint8_t)(current_ma >> 16),
+            (uint8_t)(current_ma >> 8),
+            (uint8_t)current_ma,
+        };
+
+        return CAN_Send_Ext_Data(
+            motor->hcan,
+            motor->vesc_id | ((uint32_t)CAN_PACKET_SET_CURRENT << 8),
+            data,
+            4);
     }
-    return;
+    return HAL_BUSY;
 }
 
     c620_current = (int16_t)ChassisMotor_Clamp(motor->current_cmd * motor->command_direction,
@@ -509,7 +505,7 @@ void ChassisMotor_SendCurrent(ChassisMotor_t *motor)
     offset = (uint8_t)(motor->c620_tx_slot * 2U);
     data[offset] = (uint8_t)(c620_current >> 8);
     data[offset + 1U] = (uint8_t)c620_current;
-    CAN_Send_Data(motor->hcan, (uint16_t)motor->c620_tx_id, data, 8);
+    return CAN_Send_Data(motor->hcan, (uint16_t)motor->c620_tx_id, data, 8);
 }
 
 // 发送所有电机的当前命令到对应的CAN ID  Send current commands for all motors to
@@ -620,5 +616,25 @@ for (uint32_t n = 0U; n < CHASSIS_MOTOR_COUNT; n++) {
     }
 }
 }
+
+// 分时发送C620/N630电机的当前命令，避免一次发送过多数据导致 Mailbox 拥堵  Send current commands for C620 motors in a time-division manner to avoid bus congestion caused by sending too much data at once
+void ChassisMotor_SendCurrent_VESC(void) {
+    static uint32_t send_index = 0U;
+    uint32_t free_mailbox = HAL_CAN_GetTxMailboxesFreeLevel(&hcan1);
+    uint32_t sent = 0U;
+  
+    for (uint32_t n = 0U; n < CHASSIS_MOTOR_COUNT && sent < free_mailbox; n++) {
+        uint32_t i = (send_index + n) % CHASSIS_MOTOR_COUNT;
+        ChassisMotor_t *motor = &ChassisMotor_Table[i];
+
+        if (motor->type == CHASSIS_MOTOR_TYPE_VESC) {
+            if (ChassisMotor_SendCurrent(motor) == HAL_OK) {
+                sent++;
+                send_index = (i + 1U) % CHASSIS_MOTOR_COUNT;
+            }
+        }
+    }
+}
+
 
 

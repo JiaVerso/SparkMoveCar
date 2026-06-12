@@ -32,6 +32,8 @@ void SBUS_Receive(uint8_t data);
 
 bool SBUS_GetChannels(uint16_t out[], uint16_t len);
 bool SBUS_IsFailsafe(void);
+bool SBUS_HasNewFrame(void);
+void SBUS_ClearNewFrame(void);
 
 void SBUS_Handle(void);
 

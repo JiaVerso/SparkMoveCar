@@ -126,5 +126,5 @@ void uxrce_app_loop(void) {
     // pub xrce
     // Publish_HelloWorld_Loop(&session, reliable_out);
     // sub ackermann
-    uxr_run_session_time(&session, 5);
+    uxr_run_session_time(&session, 3);
 }
