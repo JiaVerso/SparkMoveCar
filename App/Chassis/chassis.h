@@ -144,15 +144,21 @@ void ChassisMotor_CANRxDispatch(Struct_CAN_Rx_Buffer *rx_buffer);
 float ChassisMotor_GetFeedbackRpm(ChassisWheel_e wheel);
 float ChassisMotor_NormalizeChannel(uint16_t channel);
 float ChassisMotor_NormalizeSteerChannel(uint16_t channel);
+
 void ChassisMotor_SetWheelTargetRpm(ChassisWheel_e wheel, float wheel_rpm);
 void ChassisMotor_SetChassisSpeed(float vx_mps, float wz_radps);
 void ChassisMotor_SetAckermann(float vx_mps, float dm_radps);
+void ChassisMotor_SetDmSteerTarget(float left_rad, float right_rad, float vel_radps);   // rtt-nano new added 
+void ChassisMotor_SendDmSteerTarget(void);
 void ChassisMotor_EmergencyStop(void);
 void ChassisMotor_UpdateFromSbusChannels(const uint16_t channels[CHASSIS_SBUS_CH_COUNT]);
 
+void ChassisMotor_ControlLoop_UpdateOnly(void);
 void ChassisMotor_ControlLoop(void);
 uint8_t ChassisMotor_SendCurrent(ChassisMotor_t *motor);
 void ChassisMotor_SendAllCurrent(void);
+
+
 void ChassisMotor_SendAllCurrent_Section(void);
 void ChassisMotor_SendCurrent_VESC(void);
 

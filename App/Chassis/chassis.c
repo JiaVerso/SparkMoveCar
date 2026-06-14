@@ -28,6 +28,9 @@ extern CAN_HandleTypeDef hcan2;
 static volatile uint32_t ChassisMotor_DmSteerSkipCount = 0U;
 static volatile uint32_t ChassisMotor_DmSteerLeftFailCount = 0U;
 static volatile uint32_t ChassisMotor_DmSteerRightFailCount = 0U;
+static volatile float ChassisMotor_DmSteerLeftTargetRad = 0.0f;
+static volatile float ChassisMotor_DmSteerRightTargetRad = 0.0f;
+static volatile float ChassisMotor_DmSteerVelRadps = CHASSIS_DM_STEER_SPEED_RADPS;
 
 // 将数值限制在[-limit, limit]范围内  Clamp a value to the range [-limit, limit]
 static float ChassisMotor_Clamp(float value, float limit)
@@ -150,6 +153,20 @@ static void ChassisMotor_SendSteerPair(float left_rad, float right_rad, float ve
     }
 
     last_send_tick = now;
+}
+
+void ChassisMotor_SetDmSteerTarget(float left_rad, float right_rad, float vel_radps)
+{
+    ChassisMotor_DmSteerLeftTargetRad = left_rad;
+    ChassisMotor_DmSteerRightTargetRad = right_rad;
+    ChassisMotor_DmSteerVelRadps = vel_radps;
+}
+
+void ChassisMotor_SendDmSteerTarget(void)
+{
+    ChassisMotor_SendSteerPair(ChassisMotor_DmSteerLeftTargetRad,
+                               ChassisMotor_DmSteerRightTargetRad,
+                               ChassisMotor_DmSteerVelRadps);
 }
 
 ChassisMotor_t ChassisMotor_Table[CHASSIS_MOTOR_COUNT] = {
@@ -366,7 +383,7 @@ void ChassisMotor_SetAckermann(float vx_mps, float dm_radps)
     const float mps_to_rpm = 60.0f / wheel_circumference_m;
 
     // DM4310 电机的转向控制  Steering control for DM4310 motors
-    ChassisMotor_SendSteerPair(radps_l, radps_r, CHASSIS_DM_STEER_SPEED_RADPS);
+    ChassisMotor_SetDmSteerTarget(radps_l, radps_r, CHASSIS_DM_STEER_SPEED_RADPS);
 
     ChassisMotor_SetWheelTargetRpm(CHASSIS_WHEEL_LF, v_fl * mps_to_rpm);
     ChassisMotor_SetWheelTargetRpm(CHASSIS_WHEEL_RF, v_fr * mps_to_rpm);
@@ -447,14 +464,14 @@ static uint8_t ChassisMotor_Stop(ChassisMotor_t *motor) {
 // 底盘控制周期函数，计算每个电机的当前命令并发送到底盘控制器  Chassis control
 // loop function, calculate the current command for each motor and send it to
 // the chassis controllers
-void ChassisMotor_ControlLoop(void) {
+void ChassisMotor_ControlLoop_UpdateOnly(void) {
   for (uint32_t i = 0; i < CHASSIS_MOTOR_COUNT; i++) {
     ChassisMotor_t *motor = &ChassisMotor_Table[i];
     motor->feedback_wheel_rpm = ChassisMotor_GetFeedbackRpm(motor->wheel);
 
     ChassisMotor_UpdateTargetRpm(motor);
 
-     // 如果目标转速接近于零，则直接停止电机以避免积分累加 up  If the target speed is close to zero, stop the motor directly to avoid integral windup
+    // 如果目标转速接近于零，则直接停止电机以避免积分累加 up  If the target speed is close to zero, stop the motor directly to avoid integral windup
     if (ChassisMotor_Stop(motor)) {
         continue;
     }
@@ -464,7 +481,10 @@ void ChassisMotor_ControlLoop(void) {
     motor->current_cmd =
         ChassisMotor_Clamp(motor->current_cmd, motor->current_limit);
   }
+}
 
+void ChassisMotor_ControlLoop(void) {
+    ChassisMotor_ControlLoop_UpdateOnly();
     ChassisMotor_SendCurrent_VESC();
 }
 

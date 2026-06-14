@@ -21,6 +21,7 @@
 #include "can.h"
 #include "dma.h"
 #include "spi.h"
+#include "stm32f4xx_hal.h"
 #include "usart.h"
 #include "gpio.h"
 
@@ -124,8 +125,7 @@ void UART8_Trigger_Tx_DMA(void)
 
 void Serialplot_Call_Back(uint8_t *Buffer, uint16_t Length)
 {
-    for (uint16_t i = 0; i < Length; i++)
-    {
+     for (uint16_t i = 0; i < Length; i++) {
         SBUS_Receive(Buffer[i]);
     }
 
@@ -174,15 +174,109 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-void motor_thread_entry(void *parameter)
-{
-  while (1)
-  {
-    Counter++;
-    pos_speed_ctrl(&hcan1, motor[Motor1].id, (Counter / 100) % 2 == 0 ? 0.0f : PI, PI);
 
-    rt_thread_mdelay(10);
-  }
+// sbus解析线程
+static void sbus_thread_entry(void *parameter)
+{
+    (void)parameter;
+
+    while (1) {
+        if (SBUS_HasNewFrame()) {
+            ChassisControl_Update();
+            SBUS_ClearNewFrame();
+        }
+
+        rt_thread_mdelay(5); // 200hz
+    }
+}
+// CAN2 发送线程
+static void can2_dm_thread_entry(void *parameter)
+{
+    (void)parameter;
+
+    while (1) {
+        ChassisMotor_SendDmSteerTarget();
+        rt_thread_mdelay(10); // 100hz
+    }
+}
+
+// motor control thread
+static void motor_pid_thread_entry(void *parameter)
+{
+    (void)parameter;
+
+    while (1) {
+        ChassisMotor_ControlLoop_UpdateOnly();
+        rt_thread_mdelay(10); // 100hz
+    }
+}
+
+// can1 send thread
+static void can1_vesc_thread_entry(void *parameter)
+{
+    (void)parameter;
+
+    while (1) {
+        ChassisMotor_SendCurrent_VESC();  
+        rt_thread_mdelay(10); // 100hz
+    }
+}
+
+// dds communication thread
+static void xrce_thread_entry(void *parameter)
+{
+    (void)parameter;
+
+    uxrce_app_init();
+
+    while (1) {
+        uxrce_app_loop();
+        rt_thread_mdelay(20); // 50hz
+    }
+}
+
+
+ /* ---------------------------------------CAN Callback Configuration--------------------------------------------------------*/
+/**
+ * @brief  multi thread initialiation and startup 
+ * @param  rt_thread_create(const char *name,        // 线程名称 (调试和诊断时在终端里看到的名字)
+                 void (*entry)(void *),   // 线程入口函数 (线程实际执行的 while(1) 代码块)
+                 void *parameter,         // 传递给入口函数的参数 (这里全是 RT_NULL，即不传参)
+                 rt_uint32_t stack_size,  // 线程栈大小 (单位: Byte。决定了该线程能嵌套调用多深的函数和定义多少局部变量)
+                 rt_uint8_t priority,     // 线程优先级 (数字越小，优先级越高！)
+                 rt_uint32_t tick)        // 时间片大小 (当有同等优先级的线程时，轮转执行的时间分配)
+ * @retval None
+ */
+
+// multi thread initialiation and startup 
+static void SparkThreads_Start(void)
+{
+    rt_thread_t tid;
+
+    tid = rt_thread_create("sbus", sbus_thread_entry, RT_NULL, 1024, 6, 5);
+    if (tid != RT_NULL) {
+        rt_thread_startup(tid);
+    }
+
+    tid = rt_thread_create("dm", can2_dm_thread_entry, RT_NULL, 1024, 7, 5);
+    if (tid != RT_NULL) {
+        rt_thread_startup(tid);
+    }
+
+    tid = rt_thread_create("motor", motor_pid_thread_entry, RT_NULL, 1024, 10, 5);
+    if (tid != RT_NULL) {
+        rt_thread_startup(tid);
+    }
+
+    tid = rt_thread_create("vesc", can1_vesc_thread_entry, RT_NULL, 4096, 12, 5);
+    if (tid != RT_NULL) {
+        rt_thread_startup(tid);
+    }
+
+    tid = rt_thread_create("dds", xrce_thread_entry, RT_NULL, 4096, 18, 10);
+    if (tid != RT_NULL) {
+        rt_thread_startup(tid);
+    }
 }
 
 /* USER CODE END 0 */
@@ -259,7 +353,7 @@ int main(void)
 
   // VOFA_Init();
   ChassisMotor_InitAll();
-  uxrce_app_init();
+  SparkThreads_Start();
   
   // imu_init(0x22, 0x23, &hcan1);
 
@@ -316,17 +410,21 @@ int main(void)
     // comm_can_set_rpm(25, 8000.0f);
     // comm_can_set_rpm(&hcan1, 26, 4000.0f);
     
-    uxrce_app_loop();
-    ChassisControl_Update();
-    if (SBUS_HasNewFrame()) {
-      uint16_t sbus_channels[CHASSIS_SBUS_CH_COUNT] = {0};
+    rt_thread_mdelay(1000);
 
-      if (SBUS_GetChannels(sbus_channels, CHASSIS_SBUS_CH_COUNT)) {
-        ChassisMotor_UpdateFromSbusChannels(sbus_channels);
-      }
-      SBUS_ClearNewFrame();
-    }
-    ChassisMotor_ControlLoop();
+    // if (SBUS_HasNewFrame()) {
+    //   uint16_t sbus_channels[CHASSIS_SBUS_CH_COUNT] = {0};
+
+    //   if (SBUS_GetChannels(sbus_channels, CHASSIS_SBUS_CH_COUNT)) {
+    //     ChassisMotor_UpdateFromSbusChannels(sbus_channels);
+    //   }
+    //   SBUS_ClearNewFrame();
+    // }
+
+    // uxrce_app_loop();
+
+   
+    
 
     // pos_speed_ctrl(&hcan2, MOTOR_LEFT_CANID, 0.0f, 1.0f);
     // pos_speed_ctrl(&hcan2, MOTOR_RIGHT_CANID, 0.0f, 1.0f);
@@ -375,7 +473,6 @@ int main(void)
 
     // Plotter_SendData(&my_plotter);
 
-    HAL_Delay(10);
   }
   /* USER CODE END 3 */
 }
