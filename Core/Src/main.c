@@ -236,6 +236,7 @@ static void xrce_thread_entry(void *parameter)
 }
 
 
+
  /* ---------------------------------------CAN Callback Configuration--------------------------------------------------------*/
 /**
  * @brief  multi thread initialiation and startup 
